@@ -39,6 +39,7 @@ jobs:
 
       - name: Run application and check for immediate crash
         run: |
-          chmod +x ./publish/Taurus.Server
+          cd publish
+          chmod +x ./Taurus.Server
           # Run the app for up to 10 seconds; if it exits before that with a non‑zero code, the step fails.
-          timeout 10s ./publish/Taurus.Server
+          timeout 10s ./Taurus.Server
