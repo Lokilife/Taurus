@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Taurus.Application/Taurus.Application.csproj" />
+  <Project Path="Taurus.Core/Taurus.Core.csproj" />
+  <Project Path="Taurus.Infrastructure/Taurus.Infrastructure.csproj" />
+  <Project Path="Taurus.Server/Taurus.Server.csproj" />
+  <Project Path="Taurus.Shared/Taurus.Shared.csproj" />
+</Solution>

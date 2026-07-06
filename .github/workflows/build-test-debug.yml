@@ -1,0 +1,44 @@
+name: Build and Test
+# currently, simply builds application in native aot and tries to run it
+# it should use unit and E2E tests in future
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install native dependencies for AOT
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang zlib1g-dev
+
+      - name: Restore dependencies
+        run: dotnet restore Taurus.Server/Taurus.Server.csproj
+
+      - name: Publish with Native AOT
+        run: |
+          dotnet publish Taurus.Server/Taurus.Server.csproj \
+            -c Release \
+            -r linux-x64 \
+            -p:PublishAot=true \
+            -o ./publish
+
+      - name: Run application and check for immediate crash
+        run: |
+          chmod +x ./publish/Taurus.Server
+          # Run the app for up to 10 seconds; if it exits before that with a non‑zero code, the step fails.
+          timeout 10s ./publish/Taurus.Server
