@@ -1,0 +1,7 @@
+import /usr/local/lib/taurus/deployment/caddy.conf
+
+app.example.com {
+    vars taurus_backend 127.0.0.1:5080
+    vars taurus_app 127.0.0.1:8080
+    import taurus
+}

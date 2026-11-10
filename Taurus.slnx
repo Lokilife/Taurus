@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Taurus.Application/Taurus.Application.csproj" />
+    <Project Path="src/Taurus.Core/Taurus.Core.csproj" />
+    <Project Path="src/Taurus.Infrastructure/Taurus.Infrastructure.csproj" />
+    <Project Path="src/Taurus.Server/Taurus.Server.csproj" />
+    <Project Path="src/Taurus.Shared/Taurus.Shared.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Taurus.Tests/Taurus.Tests.csproj" />
+  </Folder>
+</Solution>

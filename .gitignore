@@ -1,0 +1,17 @@
+**/bin/
+**/obj/
+*.db*
+**/node_modules/
+**/.svelte-kit/
+src/Taurus.Server/wwwroot/
+.tools/
+
+logs/
+*.log
+
+**/lib/generated/
+**/wwwroot/
+
+__pycache__/
+*.pyc
+artifacts/

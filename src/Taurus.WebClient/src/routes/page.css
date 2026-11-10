@@ -1,0 +1,20 @@
+body {
+    margin: 0;
+    background: #101b22;
+    color: #eef2ef;
+    font-family: system-ui, sans-serif;
+}
+main { min-height: 100svh; display: grid; place-items: center; padding: 0 1.5rem; }
+section { width: 100%; max-width: 24rem; }
+a { color: #b8dbc9; display: block; margin-bottom: 1rem; }
+.brand { color: #a8cdbb; letter-spacing: 0.25em; font-size: 0.8rem; }
+h1 { font-weight: 500; font-size: 2rem; margin-bottom: 0.75rem; }
+.intro { color: #b8c4c8; margin-bottom: 2rem; }
+form { display: grid; gap: 0.75rem; }
+label { font-size: 0.9rem; }
+input, button { box-sizing: border-box; padding: 0.9rem; border-radius: 0.4rem; }
+input { border: 1px solid #52616b; background: #192831; color: inherit; }
+input:focus-visible, button:focus-visible { outline: 2px solid #a8cdbb; }
+button { margin-top: 0.75rem; border: 0; background: #b8dbc9; color: #102219; }
+button:disabled { opacity: 0.55; }
+[role='status'] { min-height: 1.5rem; color: #efc2b8; }

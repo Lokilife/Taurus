@@ -1,0 +1,7 @@
+entryPoints:
+  websecure:
+    address: :443
+providers:
+  file:
+    filename: /usr/local/lib/taurus/deployment/traefik.yml
+# Configure a certificate resolver or TLS certificate separately.

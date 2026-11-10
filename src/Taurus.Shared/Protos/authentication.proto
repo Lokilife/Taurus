@@ -1,0 +1,60 @@
+syntax = "proto3";
+package taurus.v1;
+option csharp_namespace = "Taurus.Shared";
+
+// Same-origin browser authentication. Unknown request fields are rejected.
+// Failures use generic INVALID_ARGUMENT, PERMISSION_DENIED, UNAUTHENTICATED,
+// NOT_FOUND, CANCELLED or UNAVAILABLE descriptions without credential details.
+service Authentication {
+  // Starts OPAQUE and issues an expiring HttpOnly browser challenge cookie.
+  // Requires the exact Origin header. No plaintext password is accepted.
+  rpc BeginLogin (BeginLoginRequest) returns (BeginLoginResponse);
+  // Consumes the challenge once, verifies the OPAQUE proof and creates a session.
+  // Requires x-taurus-csrf and x-taurus-csrf-salt headers derived from the seed.
+  rpc Login (LoginRequest) returns (SessionResponse);
+  // Returns identity and CSRF seed; never returns the session cookie token.
+  rpc CurrentSession (EmptyRequest) returns (SessionResponse);
+  // Revokes the current session. Requires the session CSRF proof and salt.
+  rpc Logout (EmptyRequest) returns (EmptyResponse);
+}
+
+// Explicitly empty request. Unknown fields are rejected.
+message EmptyRequest {}
+// Successful operation without a response payload.
+message EmptyResponse {}
+// Initial OPAQUE message; never log authentication messages.
+message BeginLoginRequest {
+  // Exact tenant-local username; no implicit normalization.
+  string username = 1;
+  // Encoded library-produced OPAQUE client request.
+  string request = 2;
+}
+// Expiring challenge. The browser context identifier remains HttpOnly.
+message BeginLoginResponse {
+  // Encoded library-produced OPAQUE server response.
+  string response = 1;
+  // Base64 server-authenticated CSRF seed; keep in memory and never log it.
+  string csrf_seed = 2;
+}
+// Final OPAQUE message; no plaintext password or password hash.
+message LoginRequest {
+  // Exact tenant-local username, matching the initial request.
+  string username = 1;
+  // Encoded library-produced OPAQUE client proof.
+  string request = 2;
+}
+// Explicit public identity and browser security metadata.
+message SessionResponse {
+  // Stable tenant-scoped user identifier.
+  string user_id = 1;
+  // Display username; not an authorization decision by itself.
+  string username = 2;
+  // Preferred locale identifier.
+  string locale = 3;
+  // Preferred timezone identifier.
+  string timezone = 4;
+  // Public identifier, distinct from the secret HttpOnly cookie token.
+  string session_id = 5;
+  // Base64 CSRF seed bound to tenant, origin, user, session and key version.
+  string csrf_seed = 6;
+}

@@ -1,0 +1,46 @@
+# Load through Traefik's file provider. Edit backend/Host to suit deployment.
+http:
+  routers:
+    taurus:
+      rule: Host(`app.example.com`) && PathPrefix(`/_taurus/`)
+      priority: 100
+      entryPoints: [websecure]
+      tls: {}
+      middlewares: [taurus-clear-identity]
+      service: taurus
+    application:
+      rule: Host(`app.example.com`)
+      priority: 1
+      entryPoints: [websecure]
+      tls: {}
+      middlewares: [taurus-clear-identity, taurus-auth, taurus-clear-secrets]
+      service: application
+  middlewares:
+    taurus-clear-identity:
+      headers:
+        customRequestHeaders:
+          X-Taurus-User: ""
+          X-Taurus-User-Id: ""
+          X-Taurus-Tenant: ""
+    taurus-auth:
+      forwardAuth:
+        address: http://127.0.0.1:5080/_taurus/auth
+        trustForwardHeader: false
+        preserveRequestMethod: false
+        authRequestHeaders: [Cookie]
+        authResponseHeaders: [X-Taurus-User, X-Taurus-User-Id, X-Taurus-Tenant]
+    taurus-clear-secrets:
+      headers:
+        customRequestHeaders:
+          Cookie: ""
+          Authorization: ""
+  services:
+    taurus:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: http://127.0.0.1:5080
+    application:
+      loadBalancer:
+        servers:
+          - url: http://127.0.0.1:8080

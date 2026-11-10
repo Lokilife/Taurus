@@ -1,0 +1,39 @@
+provider: Sqlite
+database:
+  environment: TAURUS_DATABASE
+noRateLimits: true
+sessions:
+  idleLifetime: 7.00:00:00
+  absoluteLifetime: 30.00:00:00
+  auditFailureMode: Block
+serviceLogs:
+  directory: logs
+  maximumFileBytes: 10485760 # 10 MiB
+  retainedFiles: 3
+  minimumLevel: Information
+opaque:
+  setup:
+    environment: TAURUS_OPAQUE_SETUP
+  maximumPendingLogins: 1024
+  challengeLifetime: 00:02:00
+keys:
+  csrf:
+    environment: TAURUS_CSRF_KEY
+  version: "1"
+http:
+  requestPrefix: /_taurus # Set "" to disable.
+  allowLoopbackHttp: false
+listenUrls: [http://127.0.0.1:5080]
+trustedProxies: []
+tenants:
+  - id: homelab
+    issuer: https://id.localhost
+    applicationOrigins:
+      - https://id.localhost
+      - https://app.localhost
+    rootUsername: root
+    rootPassword:
+      environment: TAURUS_ROOT_PASSWORD
+    requiredFactors: [Password]
+    allowedFactors: [Password]
+    attributes: []
