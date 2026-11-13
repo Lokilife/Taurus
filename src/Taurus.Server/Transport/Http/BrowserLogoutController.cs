@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Mvc;
 using Taurus.Application.Features.Authentication.Logout;
 using Taurus.Infrastructure.Configuration;
 using Taurus.Server.Security;
@@ -6,10 +7,10 @@ using Taurus.Server.Security;
 namespace Taurus.Server.Transport.Http;
 
 /// <summary>Revokes the visitor's current session through browser navigation.</summary>
-public static class BrowserLogout
+[Route("[taurus]/logout")]
+public sealed class BrowserLogoutController(Settings settings, ISender sender)
+    : ControllerBase
 {
-    public const string Route = "/logout";
-
     private const string FetchSite = "Sec-Fetch-Site";
     private const string FetchMode = "Sec-Fetch-Mode";
     private const string FetchDestination = "Sec-Fetch-Dest";
@@ -20,13 +21,14 @@ public static class BrowserLogout
     private const string Document = "document";
     private const string UserActivated = "?1";
 
-    public static async Task<IResult> HandleAsync(
-        HttpContext http,
-        Settings settings,
-        ISender sender)
+    /// <summary>Revokes the current session on a user-activated navigation.</summary>
+    [HttpGet]
+    public async Task<IActionResult> Logout()
     {
+        var http = HttpContext;
+
         if (!HttpMethods.IsGet(http.Request.Method))
-            return Results.StatusCode(StatusCodes.Status405MethodNotAllowed);
+            return StatusCode(StatusCodes.Status405MethodNotAllowed);
 
         var headers = http.Request.Headers;
         var site = headers[FetchSite].ToString();
@@ -35,7 +37,7 @@ public static class BrowserLogout
             || headers[FetchMode] != Navigation
             || headers[FetchDestination] != Document
             || headers[FetchUser] != UserActivated)
-            return Results.StatusCode(StatusCodes.Status403Forbidden);
+            return StatusCode(StatusCodes.Status403Forbidden);
 
         var origin = BrowserSecurity.Origin(http);
         var tenant = settings.Resolve(origin)!;
@@ -47,12 +49,12 @@ public static class BrowserLogout
                 http.RequestAborted);
 
             if (!revoked)
-                return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
         http.Response.Cookies.Delete(BrowserSecurity.SessionCookieName(http),
             BrowserSecurity.Cookie(http));
 
-        return Results.Redirect(settings.Http.RequestPrefix + "/ui/");
+        return Redirect(settings.Http.RequestPrefix + "/ui/");
     }
 }
