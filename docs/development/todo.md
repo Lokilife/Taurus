@@ -260,3 +260,19 @@ References: [setup](../guides/setup.md), [forward auth](../guides/forward-auth.m
 [security](../security/overview.md), [auditing](../security/auditing.md), [dependencies](../decisions/dependencies.md),
 [performance](performance.md), [architecture](architecture.md),
 [code style](code-style.md).
+
+## Basic administration slices
+
+- [x] Optional dedicated `adminOrigin` configuration and tenant resolution;
+  omitted origins disable the future administration entry point. Origins must
+  be distinct from application origins and other tenants' administration origins.
+- [ ] Persist bootstrap-root identity and enforce root-only administration on
+  the dedicated origin; protect root against disabling.
+- [ ] Add paginated username/status search and basic user details.
+- [ ] Add version-checked enable/disable and revoke-all-session commands with
+  atomic High-severity audit records identifying actor and target. Disabling
+  revokes sessions; enabling never restores old sessions.
+- [ ] Add the prefixed SvelteKit panel, confirmations and wire/browser tests.
+- [ ] Later: user creation with OPAQUE enrollment, profile/attribute editing,
+  deletion, credentials/recovery, individual sessions, groups/permissions,
+  delegated administrators and audit browsing.

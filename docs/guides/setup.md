@@ -103,3 +103,14 @@ the idle lifetime. There is no JWT refresh service or positive authorization cac
 Only enabled authenticated tenant users are allowed today; resource permissions
 and cross-domain SSO are future features. Browser CSRF proofs use an authenticated
 seed and client salt, described in [security](../security/overview.md).
+
+### Reserved administration origin
+
+A tenant may set `adminOrigin: https://admin.example.com` to reserve a dedicated
+origin for the planned administration panel. It must differ from every configured
+application origin and other administration origins. HTTPS and trusted-proxy rules
+apply as usual. Omit this option when administration is not configured.
+
+This configuration foundation resolves the origin to its tenant and serves the
+existing login UI. User-management APIs, root authorization and the administration
+panel remain unfinished; setting this option does not deliver those features.

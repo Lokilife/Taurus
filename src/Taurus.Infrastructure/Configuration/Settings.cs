@@ -102,6 +102,16 @@ public sealed class Settings
                 originTenants.Add(origin, tenant);
             }
 
+            if (tenant.AdminOrigin is { } adminOrigin)
+            {
+                ValidateOrigin(adminOrigin);
+
+                if (!origins.Add(adminOrigin))
+                    throw new InvalidOperationException("Conflicting administration origin");
+
+                originTenants.Add(adminOrigin, tenant);
+            }
+
             AuthenticationPolicy.Evaluate(new AdminAuthenticationPolicyEntity
             {
                 TenantId = tenant.Id,

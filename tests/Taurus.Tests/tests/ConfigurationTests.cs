@@ -7,6 +7,7 @@ namespace Taurus.Tests.tests;
 public class ConfigurationTests
 {
     private const string Origin = "https://app.localhost";
+    private const string AdminOrigin = "https://admin.localhost";
     private const string TenantId = "test";
     private const string SecretFileContent = " password \n";
     private const string SecretFileValue = " password ";
@@ -52,6 +53,20 @@ public class ConfigurationTests
 
         settings.Tenants[default(int)].ApplicationOrigins.RemoveAt(default(int));
         settings.Validate();
+
+        var tenant = settings.Tenants[default(int)];
+
+        tenant.AdminOrigin = AdminOrigin;
+        settings.Validate();
+        Assert.Same(tenant, settings.Resolve(AdminOrigin));
+
+        tenant.AdminOrigin = Origin;
+
+        Assert.Throws<InvalidOperationException>(settings.Validate);
+
+        tenant.AdminOrigin = null;
+        settings.Validate();
+        Assert.Null(settings.Resolve(AdminOrigin));
     }
 
     [Fact]
