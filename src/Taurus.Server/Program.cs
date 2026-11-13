@@ -36,6 +36,7 @@ using Taurus.Server.Configuration;
 using Taurus.Server.Security;
 using Taurus.Server.Transport.Grpc.Authentication;
 using Taurus.Server.Transport.Grpc.Interceptors;
+using Taurus.Server.Transport.Http;
 
 namespace Taurus.Server;
 
@@ -251,6 +252,8 @@ public static class Program
 
         app.UseRouting();
         app.UseGrpcWeb();
+        app.MapGet(settings.Http.RequestPrefix + BrowserLogout.Route,
+            BrowserLogout.HandleAsync);
         app.MapGet("/health/live", () => Results.Ok());
         app.MapGet("/health/ready", async (IdentityDatabase db, SchemaManager schemas) =>
         {

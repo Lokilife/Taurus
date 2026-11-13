@@ -92,7 +92,7 @@ snippets. Apache can proxy Taurus itself; its forward-auth adapter is pending.
 
 `http.requestPrefix` defaults to `/_taurus`; `""` disables it. The same compiled
 UI works at `<prefix>/ui/` without rebuilding. Keep its trailing slash. With no
-prefix, reserve `/auth`, `/ui/` and `/taurus.v1.Authentication/`. `/health/live` and
+prefix, reserve `/auth`, `/logout`, `/ui/` and `/taurus.v1.Authentication/`. `/health/live` and
 `/health/ready` remain at the root. Configure exact tenant application origins
 and specific trusted proxy IPs. Different application hosts get separate sessions.
 

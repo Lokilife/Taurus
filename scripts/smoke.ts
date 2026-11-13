@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { request as httpRequest } from 'node:http';
+import { request as httpsRequest } from 'node:https';
 import { createRequire } from 'node:module';
 import { csrfHeaders } from '../src/Taurus.WebClient/src/lib/security.ts';
 
@@ -184,3 +186,48 @@ for (const [name, value] of sessionCookies)
 
 assert.equal((await rpc('CurrentSession')).status, '16', 'Revoked token accepted');
 console.log('OPAQUE, CSRF, wire rejection and session revocation checks passed');
+
+await login();
+
+const navigation = {
+    Cookie: [...cookies.values()].join('; '),
+    'Sec-Fetch-Site': 'same-origin',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-User': '?1'
+};
+function navigate(site: string): Promise<{
+    status: number; location: string; cookies: string[]
+}> {
+    return new Promise((resolve, reject) => {
+        const request = origin!.startsWith('https:') ? httpsRequest : httpRequest;
+        const outgoing = request(origin + prefix + '/logout', {
+            headers: { ...navigation, 'Sec-Fetch-Site': site }
+        }, response => {
+            response.resume();
+            response.on('end', () => resolve({
+                status: response.statusCode!,
+                location: response.headers.location ?? '',
+                cookies: response.headers['set-cookie'] ?? []
+            }));
+        });
+
+        outgoing.on('error', reject);
+        outgoing.end();
+    });
+}
+
+const rejected = await navigate('cross-site');
+
+assert.equal(rejected.status, 403, 'Cross-site navigation revoked the session');
+assert.equal((await rpc('CurrentSession')).status, '0');
+
+const loggedOut = await navigate('same-origin');
+
+assert.equal(loggedOut.status, 302);
+assert.equal(new URL(loggedOut.location, origin).href, origin + prefix + '/ui/');
+assert.ok(loggedOut.cookies.some(cookie => cookie.startsWith(cookieName + '=;')),
+    'Session cookie was not cleared');
+assert.equal((await rpc('CurrentSession')).status, '16',
+    'Visiting the logout endpoint did not revoke the saved session cookie');
+console.log('Browser logout navigation and persistent revocation checks passed');
