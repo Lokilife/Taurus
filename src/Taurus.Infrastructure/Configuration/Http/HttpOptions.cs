@@ -12,7 +12,6 @@ public sealed class HttpOptions
     public string RequestPrefix { get; set; } = "/_taurus";
     public bool AllowLoopbackHttp { get; set; }
     public string? CertificateFile { get; set; }
-    [SecretOption(required: false)]
     public SecretReference? CertificatePassword { get; set; }
 
     public void Validate()

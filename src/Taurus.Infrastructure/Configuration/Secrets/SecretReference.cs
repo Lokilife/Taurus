@@ -1,5 +1,3 @@
-using YamlDotNet.Serialization;
-
 namespace Taurus.Infrastructure.Configuration.Secrets;
 
 public sealed class SecretReference
@@ -11,7 +9,6 @@ public sealed class SecretReference
     public string? Environment { get; set; }
     public string? File { get; set; }
 
-    [YamlIgnore]
     internal string ConfigurationPath { get; init; } = DefaultPath;
 
     /// <summary>Validates source selection without including secret values.</summary>

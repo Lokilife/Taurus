@@ -10,8 +10,10 @@ public sealed class Tenant
     public string Issuer { get; set; } = string.Empty;
     public List<string> ApplicationOrigins { get; set; } = [];
     public string RootUsername { get; set; } = "root";
-    [SecretOption]
-    public SecretReference RootPassword { get; set; } = new();
+    public SecretReference RootPassword { get; set; } = new()
+    {
+        ConfigurationPath = "rootPassword"
+    };
     public CredentialType[] RequiredFactors { get; set; } = [CredentialType.Password];
     public CredentialType[] AllowedFactors { get; set; } = [CredentialType.Password];
     public List<AttributeDefinition> Attributes { get; set; } = [];

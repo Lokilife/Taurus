@@ -4,7 +4,9 @@ namespace Taurus.Infrastructure.Authentication.Keys;
 
 public sealed class AuthenticationKeyOptions
 {
-    [SecretOption]
-    public SecretReference Csrf { get; set; } = new();
+    public SecretReference Csrf { get; set; } = new()
+    {
+        ConfigurationPath = "keys.csrf"
+    };
     public string Version { get; set; } = "1";
 }
