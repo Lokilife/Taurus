@@ -1,3 +1,5 @@
+using YamlDotNet.Serialization;
+
 namespace Taurus.Infrastructure.Configuration.Secrets;
 
 public sealed class SecretReference
@@ -9,20 +11,11 @@ public sealed class SecretReference
     public string? Environment { get; set; }
     public string? File { get; set; }
 
-    /// <summary>Rejects null references with their configuration path.</summary>
-    public static void Validate(SecretReference? reference, string path)
-    {
-        if (reference is null)
-            throw new InvalidOperationException(
-                $"{path}: expected a secret reference with value, environment or file");
-
-        reference.Validate(path);
-    }
-
-    public void Validate() => Validate(DefaultPath);
+    [YamlIgnore]
+    internal string ConfigurationPath { get; init; } = DefaultPath;
 
     /// <summary>Validates source selection without including secret values.</summary>
-    public void Validate(string path)
+    public void Validate()
     {
         var sources = default(int);
 
@@ -37,16 +30,13 @@ public sealed class SecretReference
 
         if (sources != SingleSource)
             throw new InvalidOperationException(
-                $"{path}: specify exactly one of "
-                + "value, environment or file");
+                $"{ConfigurationPath}: specify exactly one of value, environment or file");
     }
 
-    public string Resolve() => Resolve(DefaultPath);
-
-    /// <summary>Resolves a secret with a safe configuration path in failures.</summary>
-    public string Resolve(string path)
+    /// <summary>Resolves a secret with its schema-bound path in failures.</summary>
+    public string Resolve()
     {
-        Validate(path);
+        Validate();
 
         string? value;
 
@@ -60,12 +50,12 @@ public sealed class SecretReference
             exception is IOException or UnauthorizedAccessException or ArgumentException)
         {
             throw new InvalidOperationException(
-                $"{path}: cannot read the configured secret source");
+                $"{ConfigurationPath}: cannot read the configured secret source");
         }
 
         if (string.IsNullOrWhiteSpace(value))
             throw new InvalidOperationException(
-                $"{path}: the configured secret source is missing or empty");
+                $"{ConfigurationPath}: the configured secret source is missing or empty");
 
         return value;
     }

@@ -10,8 +10,11 @@ and layout as generated; update them only through their generator.
 
 ## Line length
 
-Keep every code line at or below 90 characters. Wrap long declarations,
-expressions, and calls across lines.
+Keep code lines at or below 90 characters. A line may exceed this limit when
+the extra length comes from a message string, such as an exception or log
+message. Keep that message in one literal when splitting it would only add
+concatenation for formatting. Wrap other long declarations, expressions and
+calls across lines.
 
 ## Files and folders
 

@@ -1,4 +1,3 @@
-using Taurus.Infrastructure.Configuration.Secrets;
 using Microsoft.EntityFrameworkCore;
 using Taurus.Application.Features.Authentication.Login;
 using Taurus.Core.Auditing;
@@ -25,12 +24,9 @@ public sealed class Bootstrapper(
         await using var transaction = await db.Database.BeginTransactionAsync(
             System.Data.IsolationLevel.Serializable, cancellationToken);
 
-        var tenantIndex = default(int);
-
         foreach (var tenant in settings.Tenants)
         {
-            var password = tenant.RootPassword.Resolve(
-                SecretReferencePaths.RootPassword(tenantIndex++));
+            var password = tenant.RootPassword.Resolve();
 
             if (password.Length > LoginValidator.MaximumPasswordLength)
                 throw new InvalidOperationException("Bootstrap password is too long");

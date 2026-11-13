@@ -27,6 +27,7 @@ public sealed class Settings
         new(StringComparer.OrdinalIgnoreCase);
 
     public DatabaseProvider Provider { get; set; } = DatabaseProvider.Sqlite;
+    [SecretOption]
     public SecretReference Database { get; set; } = new();
     public List<string> TenantFiles { get; set; } = [];
     public List<Tenant> Tenants { get; set; } = [];
@@ -64,6 +65,8 @@ public sealed class Settings
 
     public void Validate()
     {
+        ConfigurationContext.Bind(this);
+
         if (!Enum.IsDefined(Provider) || Tenants.Count == default || !NoRateLimits)
             throw new InvalidOperationException(
                 "Invalid provider, missing tenants or explicit NoRateLimits required");
@@ -73,8 +76,8 @@ public sealed class Settings
             || !Enum.IsDefined(Sessions.AuditFailureMode))
             throw new InvalidOperationException("Invalid session settings");
 
-        SecretReference.Validate(Keys.Csrf, SecretReferencePaths.Csrf);
-        SecretReference.Validate(Opaque.Setup, SecretReferencePaths.OpaqueSetup);
+        Keys.Csrf.Validate();
+        Opaque.Setup.Validate();
 
         if (Opaque.MaximumPendingLogins <= default(int)
             || Opaque.ChallengeLifetime <= TimeSpan.Zero)
@@ -87,25 +90,22 @@ public sealed class Settings
             throw new InvalidOperationException("Invalid service logging settings");
 
         Http.Validate();
-        SecretReference.Validate(Database, SecretReferencePaths.Database);
+        Database.Validate();
         originTenants.Clear();
 
         var ids = new HashSet<string>(StringComparer.Ordinal);
         var origins = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var issuers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        for (var tenantIndex = default(int); tenantIndex < Tenants.Count; tenantIndex++)
+        foreach (var tenant in Tenants)
         {
-            var tenant = Tenants[tenantIndex];
-
             if (string.IsNullOrWhiteSpace(tenant.Id)
                 || tenant.Id.Length > MaximumIdentifierLength || !ids.Add(tenant.Id)
                 || string.IsNullOrWhiteSpace(tenant.RootUsername)
                 || tenant.RootUsername.Length > LoginValidator.MaximumUsernameLength)
                 throw new InvalidOperationException("Invalid tenant identifiers");
 
-            SecretReference.Validate(tenant.RootPassword,
-                SecretReferencePaths.RootPassword(tenantIndex));
+            tenant.RootPassword.Validate();
             ValidateOrigin(tenant.Issuer);
 
             if (!issuers.Add(tenant.Issuer))

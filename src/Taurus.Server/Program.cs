@@ -1,4 +1,3 @@
-using Taurus.Infrastructure.Configuration.Secrets;
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -72,7 +71,7 @@ public static class Program
 
         var configurationPath = ConfigDiscovery.Resolve(ref args);
         var settings = Settings.Load(configurationPath);
-        var connection = settings.Database.Resolve(SecretReferencePaths.Database);
+        var connection = settings.Database.Resolve();
         var builder = WebApplication.CreateBuilder(args);
 
         if (settings.ListenUrls.Length != default)
@@ -82,8 +81,7 @@ public static class Program
         {
             var certificate = X509CertificateLoader.LoadPkcs12FromFile(
                 settings.Http.CertificateFile,
-                settings.Http.CertificatePassword?.Resolve(
-                    SecretReferencePaths.CertificatePassword));
+                settings.Http.CertificatePassword?.Resolve());
 
             builder.WebHost.ConfigureKestrel(options =>
                 options.ConfigureHttpsDefaults(https =>

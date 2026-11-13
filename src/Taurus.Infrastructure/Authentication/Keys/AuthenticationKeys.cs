@@ -1,4 +1,3 @@
-using Taurus.Infrastructure.Configuration.Secrets;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Taurus.Core.Authentication.Keys;
@@ -15,7 +14,7 @@ public sealed class AuthenticationKeys : IAuthenticationKeys, IDisposable
 
     public AuthenticationKeys(AuthenticationKeyOptions options)
     {
-        key = Convert.FromBase64String(options.Csrf.Resolve(SecretReferencePaths.Csrf));
+        key = Convert.FromBase64String(options.Csrf.Resolve());
         version = options.Version;
 
         if (key.Length < MinimumKeyBytes || string.IsNullOrWhiteSpace(version))
