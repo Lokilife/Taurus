@@ -5,6 +5,7 @@ public sealed class UserEntity
     public Guid Id { get; set; }
     public string TenantId { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
+    public bool Root { get; set; }
     public UserStatus Status { get; set; } = UserStatus.Disabled;
     public string Locale { get; set; } = "en";
     public string Timezone { get; set; } = "UTC";

@@ -1,6 +1,5 @@
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
-using Taurus.Server.Transport.Grpc.Administration;
 using Taurus.Server.Transport.Grpc.Serialization;
 using Taurus.Shared;
 
@@ -48,18 +47,6 @@ public class ContractTests
 
         Assert.Throws<Grpc.Core.RpcException>(() =>
             StrictProtobufMarshaller.Parse<Struct>(message.ToByteArray()));
-    }
-
-    [Fact]
-    public void AdministrationAccessUsesExplicitEmptyContracts()
-    {
-        var method = AdministrationReflection.Descriptor.Services[default(int)]
-            .Methods[default(int)];
-
-        Assert.Equal(nameof(AdministrationRpc.CheckAccess), method.Name);
-        Assert.Same(EmptyRequest.Descriptor, method.InputType);
-        Assert.Same(EmptyResponse.Descriptor, method.OutputType);
-        Assert.Empty(new EmptyResponse().ToByteArray());
     }
 
     [Fact]

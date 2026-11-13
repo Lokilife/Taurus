@@ -1,0 +1,38 @@
+syntax = "proto3";
+package taurus.v1;
+option csharp_namespace = "Taurus.Shared";
+
+// Effective Taurus permissions in the current request's tenant and origin.
+// A permission describes authority; it does not imply every management feature
+// has been implemented. Clients must never use this list as an API access check.
+enum UserPermission {
+  USER_PERMISSION_UNSPECIFIED = 0;
+  // Root administration authority, available on the dedicated admin origin only.
+  USER_PERMISSION_MANAGE_USERS = 1;
+}
+
+// Public group membership, scoped to the current user's tenant.
+message UserGroupMessage {
+  // Tenant-local group identifier.
+  string group_id = 1;
+  // Display name of the persisted group.
+  string name = 2;
+}
+
+// Current user's public profile. Never contains credentials or session tokens.
+message UserMessage {
+  // Stable tenant-local user identifier.
+  string user_id = 1;
+  // Exact username.
+  string username = 2;
+  // Preferred locale identifier.
+  string locale = 3;
+  // Preferred timezone identifier.
+  string timezone = 4;
+  // Effective permissions for this origin; empty for ordinary accounts.
+  repeated UserPermission permissions = 5;
+  // Persisted memberships, ordered by group name and identifier.
+  repeated UserGroupMessage groups = 6;
+  // Unset until avatar storage and management are implemented.
+  optional string avatar_url = 7;
+}

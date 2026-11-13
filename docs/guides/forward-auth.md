@@ -74,9 +74,9 @@ python3 scripts/render-proxy.py --prefix /identity --output /tmp/taurus-proxy
 python3 scripts/render-proxy.py --prefix '' --output /tmp/taurus-no-prefix
 ```
 
-Include/load those generated files instead. With no prefix, reserve `/auth`,
-`/logout`, `/ui/`, `/taurus.v1.Authentication/`, and `/taurus.v1.Administration/`
-for Taurus. Keep the trailing `/` on login page URLs. The hash router and relative assets allow the same compiled UI
+Include/load those generated files instead. With no prefix, reserve `/auth`, `/logout`,
+`/ui/`, and `/taurus.v1.Authentication/` for Taurus. Keep the trailing `/` on
+login page URLs. The hash router and relative assets allow the same compiled UI
 to run at each prefix.
 
 ## Log out from an application

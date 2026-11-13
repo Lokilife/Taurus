@@ -36,6 +36,6 @@ fi
     --js_out="import_style=commonjs,binary:$output_dir" \
     --grpc-web_out="import_style=typescript,mode=grpcweb:$output_dir" \
     "$repo_root/src/Taurus.Shared/Protos/authentication.proto" \
-    "$repo_root/src/Taurus.Shared/Protos/administration.proto"
+    "$repo_root/src/Taurus.Shared/Protos/user.proto"
 # Node tools need the generated CommonJS module to have an explicit module type.
 printf '%s\n' '{"type":"commonjs"}' > "$output_dir/package.json"

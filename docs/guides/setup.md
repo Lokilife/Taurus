@@ -93,8 +93,8 @@ snippets. Apache can proxy Taurus itself; its forward-auth adapter is pending.
 
 `http.requestPrefix` defaults to `/_taurus`; `""` disables it. The same compiled
 UI works at `<prefix>/ui/` without rebuilding. Keep its trailing slash. With no
-prefix, reserve `/auth`, `/logout`, `/ui/`, `/taurus.v1.Authentication/` and
-`/taurus.v1.Administration/`. `/health/live` and
+prefix, reserve `/auth`, `/logout`, `/ui/` and `/taurus.v1.Authentication/`.
+`/health/live` and
 `/health/ready` remain at the root. Configure exact tenant application origins
 and specific trusted proxy IPs. Different application hosts get separate sessions.
 
@@ -114,25 +114,25 @@ application origin and other administration origins. HTTPS and trusted-proxy rul
 apply as usual. Omit this option when administration is not configured.
 
 The origin serves the existing login UI. The prefixed gRPC
-`taurus.v1.Administration/CheckAccess` method requires a valid session belonging to
-that tenant's persisted bootstrap root; application origins and ordinary accounts
-cannot use it. A successful response is empty. No user-management operations or
-administration panel are delivered yet.
+`taurus.v1.Authentication/GetCurrentUser` method returns the authenticated user's
+`UserMessage`: ID, username, locale, timezone, persisted group memberships and
+effective permissions. Ordinary users can read their own profile on any configured
+tenant origin. Only an enabled root on the dedicated admin origin receives the
+`MANAGE_USERS` permission; it describes administration authority, while management
+operations and the panel remain unfinished. Avatar URLs are currently unset.
 
-Apply the additive `BindBootstrapRoot` migration before starting this version.
-Bootstrap then binds the original root ID and records a High-severity audit event
-in the same transaction. For existing databases, the configured `rootUsername`
-must match the sole distinct successful bootstrap actor in retained user-audit
-history. Missing, conflicting or mismatched history stops startup without granting
-administrator access. Restore consistent configuration/history from a trusted
-backup before retrying; do not delete identity data to bypass the check.
+The root marker is `UserEntity.Root`, with at most one root per tenant. Bootstrap
+creates it together with credentials and a High-severity bootstrap audit event.
+Restarting preserves credentials and enabled/disabled status. Changing
+`rootUsername` does not transfer root authority or create a replacement root: a
+mismatch stops startup.
 
-After binding, changing `rootUsername` does not transfer privileges or create a
-replacement root: a mismatch stops startup. Existing passwords and enabled/disabled
-status are preserved. Ordinary accounts can authenticate on the admin origin but
-are denied administration access. New administration writes will require CSRF and
-strict audit persistence; only the read-only access check is currently available.
+The generated `RootMarker` migration updates the schema. Pre-1.0 databases have no
+backwards-compatibility or automatic root backfill: existing unmarked users cause
+bootstrap to fail closed. Recreate only explicitly disposable development databases
+when adopting this version; no operator database is automatically erased or
+rewritten. Bootstrap does not inspect old audit history to infer privileges.
 
-Use the standard prefixed Taurus proxy route on this host. Regenerate empty-prefix
-proxy snippets so they also route `/taurus.v1.Administration/`. Host-only cookies
-mean administrators sign in separately on the dedicated host.
+Use the standard Taurus proxy route on this host. Host-only cookies mean
+administrators sign in separately on the dedicated host. Future administration
+mutations will require root authorization, CSRF and strict audit persistence.

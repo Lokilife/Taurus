@@ -8,13 +8,14 @@ const require = createRequire(import.meta.url);
 const opaque = require('../src/Taurus.WebClient/node_modules/@serenity-kit/opaque');
 const contractPath = '../src/Taurus.WebClient/src/lib/generated/authentication_pb.js';
 const contracts = require(contractPath);
+const profiles = require(
+    '../src/Taurus.WebClient/src/lib/generated/user_pb.js');
 const origin = process.env.TAURUS_TEST_ORIGIN;
 const password = process.env.TAURUS_TEST_PASSWORD;
 const username = process.env.TAURUS_TEST_USERNAME ?? 'root';
 const prefix = process.env.TAURUS_TEST_PREFIX ?? '/_taurus';
 const service = '/taurus.v1.Authentication/';
-const administrationService = '/taurus.v1.Administration/';
-const adminAccess = process.env.TAURUS_TEST_ADMIN_ACCESS;
+const expectedAdmin = process.env.TAURUS_TEST_EXPECT_ADMIN;
 const frameHeaderBytes = 5;
 const trailerBit = 128;
 const unknownField = new Uint8Array([120, 1]);
@@ -26,15 +27,14 @@ if (!origin || !password)
 async function rpc(
     method: string,
     payload = new Uint8Array(),
-    extra: Record<string, string> = {},
-    servicePath = service
+    extra: Record<string, string> = {}
 ): Promise<{ status: string; payload: Uint8Array }> {
     const frame = new Uint8Array(frameHeaderBytes + payload.length);
 
     new DataView(frame.buffer).setUint32(1, payload.length);
     frame.set(payload, frameHeaderBytes);
 
-    const response = await fetch(origin + prefix + servicePath + method, {
+    const response = await fetch(origin + prefix + service + method, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/grpc-web+proto',
@@ -117,13 +117,9 @@ assert.equal(canonical.status, 302, 'Missing trailing slash was not normalized')
 assert.equal(new URL(canonical.headers.get('location')!, origin).href,
     origin + prefix + '/ui/');
 
-if (adminAccess) {
-    assert.ok(adminAccess === 'allowed' || adminAccess === 'denied');
-    assert.equal((await rpc('CheckAccess', unknownField, {},
-        administrationService)).status, '3', 'Administration accepted unknown fields');
-    assert.equal((await rpc('CheckAccess', undefined, {},
-        administrationService)).status, adminAccess === 'allowed' ? '16' : '7');
-}
+assert.equal((await rpc('GetCurrentUser', unknownField)).status, '3',
+    'Current-user endpoint accepted unknown fields');
+assert.equal((await rpc('GetCurrentUser')).status, '16');
 
 await opaque.ready;
 
@@ -184,11 +180,22 @@ async function login(): Promise<string> {
 
 const seed = await login();
 
-if (adminAccess) {
-    const access = await rpc('CheckAccess', undefined, {}, administrationService);
+const profileResponse = await rpc('GetCurrentUser');
 
-    assert.equal(access.status, adminAccess === 'allowed' ? '0' : '7');
-    assert.equal(access.payload.length, 0, 'Administration returned undocumented data');
+assert.equal(profileResponse.status, '0');
+
+const profile = profiles.UserMessage.deserializeBinary(profileResponse.payload);
+
+assert.deepEqual(profile.serializeBinary(), profileResponse.payload,
+    'Current-user response contains undocumented fields');
+assert.equal(profile.getUsername(), username);
+assert.ok(profile.getUserId(), 'Current-user profile lacks an ID');
+assert.equal(profile.hasAvatarUrl(), false, 'Unimplemented avatar was returned');
+
+if (expectedAdmin !== undefined) {
+    assert.ok(expectedAdmin === 'true' || expectedAdmin === 'false');
+    assert.deepEqual(profile.getPermissionsList(), expectedAdmin === 'true'
+        ? [profiles.UserPermission.USER_PERMISSION_MANAGE_USERS] : []);
 }
 
 if (process.env.TAURUS_TEST_STANDALONE === 'true') {
@@ -231,10 +238,8 @@ for (const [name, value] of sessionCookies)
 
 assert.equal((await rpc('CurrentSession')).status, '16', 'Revoked token accepted');
 
-if (adminAccess) {
-    assert.equal((await rpc('CheckAccess', undefined, {},
-        administrationService)).status, adminAccess === 'allowed' ? '16' : '7');
-}
+assert.equal((await rpc('GetCurrentUser')).status, '16',
+    'Current-user profile accepted a revoked session');
 
 console.log('OPAQUE, CSRF, wire rejection and session revocation checks passed');
 

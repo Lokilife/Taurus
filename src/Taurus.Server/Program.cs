@@ -6,6 +6,7 @@ using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using Taurus.Application.Behaviors;
 using Taurus.Application.Features.Administration.Authorize;
+using Taurus.Application.Features.Users.CurrentUser;
 using Taurus.Application.Features.Authentication.BeginLogin;
 using Taurus.Application.Features.Authentication.Login;
 using Taurus.Application.Features.Provisioning.Bootstrap;
@@ -13,6 +14,7 @@ using Taurus.Application.Features.Schemas.ApplyCompatible;
 using Taurus.Application.Features.Schemas.Approve;
 using Taurus.Application.Features.Schemas.Plan;
 using Taurus.Core.Administration;
+using Taurus.Core.Users.Profiles;
 using Taurus.Core.Auditing;
 using Taurus.Core.Authentication.Keys;
 using Taurus.Core.Authentication;
@@ -20,12 +22,14 @@ using Taurus.Core.Credentials.Opaque;
 using Taurus.Core.Credentials;
 using Taurus.Core.Provisioning;
 using Taurus.Core.Users.Attributes;
+using Taurus.Infrastructure.Administration;
 using Taurus.Infrastructure.Authentication.Keys;
 using Taurus.Infrastructure.Authentication.Opaque;
 using Taurus.Infrastructure.Configuration.Persistence;
 using Taurus.Infrastructure.Configuration;
 using Taurus.Infrastructure.Logging;
 using Taurus.Infrastructure.Persistence.Administration;
+using Taurus.Infrastructure.Persistence.Users;
 using Taurus.Infrastructure.Persistence.Auditing;
 using Taurus.Infrastructure.Persistence.Authentication;
 using Taurus.Infrastructure.Persistence.Providers.PostgreSql;
@@ -117,6 +121,9 @@ public static class Program
                     .UseNpgsql(connection).Options),
             _ => throw new InvalidOperationException("Unsupported provider")
         });
+        builder.Services.AddSingleton<IAdministrationOriginPolicy,
+            AdministrationOriginPolicy>();
+        builder.Services.AddScoped<IUserProfileRepo, UserProfileRepo>();
         builder.Services.AddScoped<IAdministrationRepo, AdministrationRepo>();
         builder.Services.AddScoped<AdministrationAuthorization>();
         builder.Services.AddScoped<IUserLogRepo, UserLogRepo>();
@@ -131,6 +138,8 @@ public static class Program
             configuration.RegisterServicesFromAssemblyContaining<LoginCommand>());
         builder.Services.AddTransient<IValidator<AuthorizeAdministrationQuery>,
             AuthorizeAdministrationValidator>();
+        builder.Services.AddTransient<IValidator<CurrentUserQuery>,
+            CurrentUserValidator>();
         builder.Services.AddTransient<IValidator<LoginCommand>, LoginValidator>();
         builder.Services.AddTransient<IValidator<BeginLoginCommand>,
             BeginLoginValidator>();
@@ -266,8 +275,6 @@ public static class Program
 
         app.MapGroup(settings.Http.RequestPrefix)
             .MapGrpcService<AuthenticationRpc>().EnableGrpcWeb();
-        app.MapGroup(settings.Http.RequestPrefix)
-            .MapGrpcService<AdministrationRpc>().EnableGrpcWeb();
         app.UseStaticFiles(new StaticFileOptions
         {
             RequestPath = settings.Http.RequestPrefix + "/ui"

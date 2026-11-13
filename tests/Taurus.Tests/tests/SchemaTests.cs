@@ -2,7 +2,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Taurus.Core.Users.Attributes;
 using Taurus.Infrastructure.Authentication.Opaque;
-using OPAQUE.Net;
 using Taurus.Infrastructure.Configuration;
 using Taurus.Infrastructure.Configuration.Attributes;
 using Taurus.Infrastructure.Configuration.Secrets;
@@ -40,13 +39,9 @@ public class SchemaTests
             RootPassword = new SecretReference { Environment = SecretEnvironment },
             Attributes = [new AttributeDefinition { Name = AttributeName }]
         };
-        var settings = new Settings { NoRateLimits = true, Tenants = [tenant] };
-        Assert.True(new OpaqueServer().CreateSetup(out var setup));
+        var settings = TestSettings.Create(tenant);
 
-        var opaque = new OpaqueService(new OpaqueOptions
-        {
-            Setup = new SecretReference { Value = setup }
-        }, TimeProvider.System);
+        var opaque = new OpaqueService(settings.Opaque, TimeProvider.System);
         var bootstrap = new Bootstrapper(db, settings, opaque,
             new UserLogRepo(db, NullLogger<UserLogRepo>.Instance));
         var schema = new SchemaManager(db, settings,

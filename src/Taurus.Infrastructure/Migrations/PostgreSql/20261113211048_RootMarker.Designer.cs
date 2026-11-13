@@ -12,8 +12,8 @@ using Taurus.Infrastructure.Persistence.Providers.PostgreSql;
 namespace Taurus.Infrastructure.Migrations.PostgreSql
 {
     [DbContext(typeof(PostgreSqlDatabase))]
-    [Migration("20261113202235_BindBootstrapRoot")]
-    partial class BindBootstrapRoot
+    [Migration("20261113211048_RootMarker")]
+    partial class RootMarker
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,22 +24,6 @@ namespace Taurus.Infrastructure.Migrations.PostgreSql
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("Taurus.Core.Administration.TenantRootEntity", b =>
-                {
-                    b.Property<string>("TenantId")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("TenantId");
-
-                    b.HasIndex("TenantId", "UserId");
-
-                    b.ToTable("TenantRoots");
-                });
 
             modelBuilder.Entity("Taurus.Core.Auditing.UserLogEntity", b =>
                 {
@@ -63,9 +47,6 @@ namespace Taurus.Infrastructure.Migrations.PostgreSql
 
                     b.Property<bool>("Succeeded")
                         .HasColumnType("boolean");
-
-                    b.Property<Guid?>("TargetUserId")
-                        .HasColumnType("uuid");
 
                     b.Property<long>("Timestamp")
                         .HasColumnType("bigint");
@@ -265,6 +246,9 @@ namespace Taurus.Infrastructure.Migrations.PostgreSql
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("Root")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -281,6 +265,10 @@ namespace Taurus.Infrastructure.Migrations.PostgreSql
                         .HasColumnType("uuid");
 
                     b.HasKey("TenantId", "Id");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasFilter("\"Root\" = true");
 
                     b.HasIndex("TenantId", "Username")
                         .IsUnique();
@@ -305,15 +293,6 @@ namespace Taurus.Infrastructure.Migrations.PostgreSql
                     b.HasKey("TenantId");
 
                     b.ToTable("Schemas");
-                });
-
-            modelBuilder.Entity("Taurus.Core.Administration.TenantRootEntity", b =>
-                {
-                    b.HasOne("Taurus.Core.Users.UserEntity", null)
-                        .WithMany()
-                        .HasForeignKey("TenantId", "UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Taurus.Core.Authentication.Policies.UserAuthenticationPolicyEntity", b =>

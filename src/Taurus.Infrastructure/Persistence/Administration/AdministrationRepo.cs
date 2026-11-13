@@ -9,11 +9,7 @@ public sealed class AdministrationRepo(IdentityDatabase db) : IAdministrationRep
     public Task<bool> IsRootAsync(
         string tenantId,
         Guid userId,
-        CancellationToken cancellationToken) => (
-            from root in db.TenantRoots
-            join user in db.Users on new { root.TenantId, Id = root.UserId }
-                equals new { user.TenantId, user.Id }
-            where root.TenantId == tenantId && root.UserId == userId
-                && user.Status == UserStatus.Enabled
-            select root).AnyAsync(cancellationToken);
+        CancellationToken cancellationToken) => db.Users.AnyAsync(
+            x => x.TenantId == tenantId && x.Id == userId && x.Root
+                && x.Status == UserStatus.Enabled, cancellationToken);
 }

@@ -8,6 +8,5 @@ public enum AuditAction
     Bootstrap,
     PolicyApply,
     SchemaApply,
-    SchemaApproval,
-    BootstrapRootBound
+    SchemaApproval
 }

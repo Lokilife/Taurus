@@ -1,6 +1,7 @@
 using Grpc.Core;
 using MediatR;
 using Taurus.Application.Features.Administration.Authorize;
+using Taurus.Core.Administration;
 using Taurus.Core.Sessions;
 using Taurus.Infrastructure.Configuration;
 using Taurus.Server.Security;
@@ -8,7 +9,10 @@ using Taurus.Server.Security;
 namespace Taurus.Server.Transport.Grpc.Administration;
 
 /// <summary>Resolves administration authority from the HTTP request.</summary>
-public sealed class AdministrationAuthorization(Settings settings, ISender sender)
+public sealed class AdministrationAuthorization(
+    Settings settings,
+    ISender sender,
+    IAdministrationOriginPolicy policy)
 {
     private const int PrimaryErrorIndex = 0;
 
@@ -20,8 +24,7 @@ public sealed class AdministrationAuthorization(Settings settings, ISender sende
         var origin = BrowserSecurity.Origin(http);
         var tenant = settings.Resolve(origin);
 
-        if (tenant?.AdminOrigin is null || !string.Equals(
-            tenant.AdminOrigin, origin, StringComparison.OrdinalIgnoreCase))
+        if (tenant is null || !policy.Allows(tenant.Id, origin))
             throw new RpcException(new Status(StatusCode.PermissionDenied,
                 "Administration access denied"));
 

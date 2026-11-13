@@ -17,22 +17,6 @@ namespace Taurus.Infrastructure.Migrations.Sqlite
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
 
-            modelBuilder.Entity("Taurus.Core.Administration.TenantRootEntity", b =>
-                {
-                    b.Property<string>("TenantId")
-                        .HasMaxLength(128)
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("TenantId");
-
-                    b.HasIndex("TenantId", "UserId");
-
-                    b.ToTable("TenantRoots");
-                });
-
             modelBuilder.Entity("Taurus.Core.Auditing.UserLogEntity", b =>
                 {
                     b.Property<string>("TenantId")
@@ -55,9 +39,6 @@ namespace Taurus.Infrastructure.Migrations.Sqlite
 
                     b.Property<bool>("Succeeded")
                         .HasColumnType("INTEGER");
-
-                    b.Property<Guid?>("TargetUserId")
-                        .HasColumnType("TEXT");
 
                     b.Property<long>("Timestamp")
                         .HasColumnType("INTEGER");
@@ -257,6 +238,9 @@ namespace Taurus.Infrastructure.Migrations.Sqlite
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("Root")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
@@ -273,6 +257,10 @@ namespace Taurus.Infrastructure.Migrations.Sqlite
                         .HasColumnType("TEXT");
 
                     b.HasKey("TenantId", "Id");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasFilter("\"Root\" = true");
 
                     b.HasIndex("TenantId", "Username")
                         .IsUnique();
@@ -297,15 +285,6 @@ namespace Taurus.Infrastructure.Migrations.Sqlite
                     b.HasKey("TenantId");
 
                     b.ToTable("Schemas");
-                });
-
-            modelBuilder.Entity("Taurus.Core.Administration.TenantRootEntity", b =>
-                {
-                    b.HasOne("Taurus.Core.Users.UserEntity", null)
-                        .WithMany()
-                        .HasForeignKey("TenantId", "UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Taurus.Core.Authentication.Policies.UserAuthenticationPolicyEntity", b =>
