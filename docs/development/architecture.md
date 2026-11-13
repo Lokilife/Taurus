@@ -92,10 +92,14 @@ approved implementations, not Taurus-owned algorithm implementations.
 
 ## Transport adapters and request flow
 
-Server currently exposes gRPC services and minimal HTTP endpoints, not MVC
-controllers. These adapters resolve the configured application/tenant context,
+Server exposes gRPC services and MVC HTTP controllers. Controllers own HTTP
+routes for browser redirects/logout, forward-auth and health probes; Program
+composes dependencies, middleware, static files and transport registration.
+The `taurus` route token resolves to the configured request prefix, including
+an empty prefix. Health probes and the site-root login redirect retain their
+unprefixed routes. These adapters resolve the configured application/tenant context,
 apply transport security, map contracts to application requests and construct
-explicit response contracts. Future controllers or protocol adapters must follow
+explicit response contracts. Future protocol adapters must follow
 the same boundary rather than introduce another business-logic layer.
 
 A normal browser request follows this flow:

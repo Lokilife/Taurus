@@ -77,6 +77,23 @@ async function rpc(
     return { status, payload: result };
 }
 
+if (process.env.TAURUS_TEST_STANDALONE === 'true') {
+    const home = await fetch(origin, { redirect: 'manual' });
+
+    assert.equal((await fetch(origin + '/health/live')).status, 200);
+    assert.equal((await fetch(origin + '/health/ready')).status, 200);
+    assert.equal(home.status, 302, 'Site root did not redirect to login');
+    assert.equal(new URL(home.headers.get('location')!, origin).href,
+        origin + prefix + '/ui/');
+    assert.equal((await fetch(origin + prefix + '/auth')).status, 401,
+        'Anonymous forward-auth request was accepted');
+
+    if (prefix.length !== 0) {
+        assert.equal((await fetch(origin + '/auth')).status, 404);
+        assert.equal((await fetch(origin + '/logout')).status, 404);
+    }
+}
+
 const ui = await fetch(origin + prefix + '/ui/', { redirect: 'manual' });
 
 assert.equal(ui.status, 200, 'Login page redirects or is unavailable');
@@ -156,6 +173,16 @@ async function login(): Promise<string> {
 
 const seed = await login();
 
+if (process.env.TAURUS_TEST_STANDALONE === 'true') {
+    const authorized = await fetch(origin + prefix + '/auth', {
+        headers: { Cookie: [...cookies.values()].join('; ') }
+    });
+
+    assert.equal(authorized.status, 204, 'Forward-auth rejected a valid session');
+    assert.equal(authorized.headers.get('X-Taurus-User'), encodeURIComponent(username));
+    assert.ok(authorized.headers.get('X-Taurus-User-Id'), 'Forward-auth omitted user ID');
+}
+
 const current = await rpc('CurrentSession');
 
 assert.equal(current.status, '0');
@@ -196,12 +223,13 @@ const navigation = {
     'Sec-Fetch-Dest': 'document',
     'Sec-Fetch-User': '?1'
 };
-function navigate(site: string): Promise<{
+function navigate(site: string, method = 'GET'): Promise<{
     status: number; location: string; cookies: string[]
 }> {
     return new Promise((resolve, reject) => {
         const request = origin!.startsWith('https:') ? httpsRequest : httpRequest;
         const outgoing = request(origin + prefix + '/logout', {
+            method,
             headers: { ...navigation, 'Sec-Fetch-Site': site }
         }, response => {
             response.resume();
@@ -220,6 +248,11 @@ function navigate(site: string): Promise<{
 const rejected = await navigate('cross-site');
 
 assert.equal(rejected.status, 403, 'Cross-site navigation revoked the session');
+assert.equal((await rpc('CurrentSession')).status, '0');
+
+const head = await navigate('same-origin', 'HEAD');
+
+assert.equal(head.status, 405, 'HEAD request was accepted for browser logout');
 assert.equal((await rpc('CurrentSession')).status, '0');
 
 const loggedOut = await navigate('same-origin');

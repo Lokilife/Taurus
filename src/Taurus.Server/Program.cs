@@ -11,7 +11,6 @@ using Taurus.Application.Features.Provisioning.Bootstrap;
 using Taurus.Application.Features.Schemas.ApplyCompatible;
 using Taurus.Application.Features.Schemas.Approve;
 using Taurus.Application.Features.Schemas.Plan;
-using Taurus.Application.Features.Sessions.CurrentSession;
 using Taurus.Core.Auditing;
 using Taurus.Core.Authentication.Keys;
 using Taurus.Core.Authentication;
@@ -131,6 +130,9 @@ public static class Program
             ApproveSchemaValidator>();
         builder.Services.AddTransient(
             typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+        builder.Services.AddControllers(options =>
+            options.Conventions.Add(new RequestPrefixConvention(
+                settings.Http.RequestPrefix)));
         builder.Services.AddGrpc(options =>
         {
             options.MaxReceiveMessageSize = maximumMessageBytes;
@@ -252,50 +254,7 @@ public static class Program
 
         app.UseRouting();
         app.UseGrpcWeb();
-        app.MapGet(settings.Http.RequestPrefix + BrowserLogout.Route,
-            BrowserLogout.HandleAsync);
-        app.MapGet("/health/live", () => Results.Ok());
-        app.MapGet("/health/ready", async (IdentityDatabase db, SchemaManager schemas) =>
-        {
-            try
-            {
-                if (!await db.Database.CanConnectAsync())
-                    return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-
-                foreach (var migration in await db.Database.GetPendingMigrationsAsync())
-                    return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-
-                await schemas.CheckAsync(CancellationToken.None);
-
-                return Results.Ok();
-            }
-            catch
-            {
-                return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-            }
-        });
-
-        app.MapGet(settings.Http.RequestPrefix + "/auth",
-            async (HttpContext http, ISender sender) =>
-        {
-            var origin = BrowserSecurity.Origin(http);
-            var tenant = settings.Resolve(origin)!;
-            var identity = await sender.Send(new CurrentSessionQuery(
-                tenant.Id, origin, BrowserSecurity.ReadSession(http)),
-                http.RequestAborted);
-
-            if (identity is null)
-                return Results.StatusCode(StatusCodes.Status401Unauthorized);
-
-            http.Response.Headers[BrowserSecurity.UserIdHeader] =
-                identity.UserId.ToString();
-            http.Response.Headers[BrowserSecurity.UsernameHeader] =
-                Uri.EscapeDataString(identity.Username);
-            http.Response.Headers[BrowserSecurity.TenantHeader] =
-                Uri.EscapeDataString(tenant.Id);
-
-            return Results.NoContent();
-        });
+        app.MapControllers();
 
         app.MapGroup(settings.Http.RequestPrefix)
             .MapGrpcService<AuthenticationRpc>().EnableGrpcWeb();
@@ -305,7 +264,6 @@ public static class Program
         });
         app.MapFallbackToFile(settings.Http.RequestPrefix + "/ui/{*path:nonfile}",
             BrowserSecurity.IndexFile);
-        app.MapGet("/", () => Results.Redirect(settings.Http.RequestPrefix + "/ui/"));
 
         await app.RunAsync();
     }
