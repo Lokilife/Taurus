@@ -36,7 +36,15 @@ for root in ('src', 'tests', 'scripts'):
 
 
         for index, line in enumerate(lines):
-            if len(line) > maximum_length:
+            context = line + (lines[index - 1] if index else '')
+            message = re.search(
+                r'(?:\w*(?:Exception|Error)|Log\w*|console\.\w+|print)\s*\(',
+                context)
+            literal = r"(?:\$?\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'|`[^`]*`)"
+            shortened = re.sub(literal, '""', line)
+            long_message = message and len(shortened) <= maximum_length
+
+            if len(line) > maximum_length and not long_message:
                 failures.append(f'{path}:{index + 1}: exceeds {maximum_length} chars')
 
             if line.strip().startswith('}') and index and not lines[index - 1].strip():

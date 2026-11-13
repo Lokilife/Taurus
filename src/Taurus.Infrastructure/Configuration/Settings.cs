@@ -1,6 +1,4 @@
-using System.Text.Json;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
+using Taurus.Infrastructure.Configuration.Serialization;
 using Taurus.Application.Features.Authentication;
 using Taurus.Application.Features.Authentication.Login;
 using Taurus.Application.Features.Authentication.Policies;
@@ -27,7 +25,10 @@ public sealed class Settings
         new(StringComparer.OrdinalIgnoreCase);
 
     public DatabaseProvider Provider { get; set; } = DatabaseProvider.Sqlite;
-    public SecretReference Database { get; set; } = new();
+    public SecretReference Database { get; set; } = new()
+    {
+        ConfigurationPath = "database"
+    };
     public List<string> TenantFiles { get; set; } = [];
     public List<Tenant> Tenants { get; set; } = [];
     public bool NoRateLimits { get; set; }
@@ -39,28 +40,7 @@ public sealed class Settings
     public string[] ListenUrls { get; set; } = [];
     public List<string> TrustedProxies { get; set; } = [];
 
-    public static Settings Load(string path)
-    {
-        var yaml = new DeserializerBuilder()
-            .WithNamingConvention(CamelCaseNamingConvention.Instance)
-            .WithDuplicateKeyChecking()
-            .Build();
-        var settings = yaml.Deserialize<Settings>(System.IO.File.ReadAllText(path))
-            ?? throw new InvalidOperationException("Empty configuration");
-        var directory = Path.GetDirectoryName(Path.GetFullPath(path))!;
-
-        foreach (var file in settings.TenantFiles)
-        {
-            var tenantPath = Path.Combine(directory, file);
-
-            settings.Tenants.Add(yaml.Deserialize<Tenant>(
-                System.IO.File.ReadAllText(tenantPath)));
-        }
-
-        settings.Validate();
-
-        return settings;
-    }
+    public static Settings Load(string path) => SettingsSerializer.Load(path);
 
     public void Validate()
     {
@@ -162,7 +142,7 @@ public sealed class Settings
         originTenants.TryGetValue(origin, out var tenant) ? tenant : null;
 
     public static string Schema(Tenant tenant) =>
-        JsonSerializer.Serialize(tenant.Attributes);
+        SettingsSerializer.SerializeSchema(tenant);
 
     private void ValidateOrigin(string origin)
     {
