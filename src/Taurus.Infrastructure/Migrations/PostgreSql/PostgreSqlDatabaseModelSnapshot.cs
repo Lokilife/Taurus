@@ -22,6 +22,22 @@ namespace Taurus.Infrastructure.Migrations.PostgreSql
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Taurus.Core.Administration.TenantRootEntity", b =>
+                {
+                    b.Property<string>("TenantId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("TenantId");
+
+                    b.HasIndex("TenantId", "UserId");
+
+                    b.ToTable("TenantRoots");
+                });
+
             modelBuilder.Entity("Taurus.Core.Auditing.UserLogEntity", b =>
                 {
                     b.Property<string>("TenantId")
@@ -44,6 +60,9 @@ namespace Taurus.Infrastructure.Migrations.PostgreSql
 
                     b.Property<bool>("Succeeded")
                         .HasColumnType("boolean");
+
+                    b.Property<Guid?>("TargetUserId")
+                        .HasColumnType("uuid");
 
                     b.Property<long>("Timestamp")
                         .HasColumnType("bigint");
@@ -283,6 +302,15 @@ namespace Taurus.Infrastructure.Migrations.PostgreSql
                     b.HasKey("TenantId");
 
                     b.ToTable("Schemas");
+                });
+
+            modelBuilder.Entity("Taurus.Core.Administration.TenantRootEntity", b =>
+                {
+                    b.HasOne("Taurus.Core.Users.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId", "UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Taurus.Core.Authentication.Policies.UserAuthenticationPolicyEntity", b =>

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Taurus.Application.Features.Authentication.Login;
+using Taurus.Core.Administration;
 using Taurus.Core.Auditing;
 using Taurus.Core.Authentication.Policies;
 using Taurus.Core.Credentials;
@@ -19,6 +20,9 @@ public sealed class Bootstrapper(
     IOpaqueService opaque,
     IUserLogRepo userLogRepo) : IBootstrapService
 {
+    private const int AmbiguousRootCount = 2;
+    private const int ExpectedRootCount = 1;
+
     public async Task RunAsync(CancellationToken cancellationToken)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(
@@ -31,12 +35,47 @@ public sealed class Bootstrapper(
             if (password.Length > LoginValidator.MaximumPasswordLength)
                 throw new InvalidOperationException("Bootstrap password is too long");
 
-            var existing = await db.Users.AnyAsync(
+            var binding = await db.TenantRoots.AsNoTracking().SingleOrDefaultAsync(
+                x => x.TenantId == tenant.Id, cancellationToken);
+
+            if (binding is not null)
+            {
+                var bound = await db.Users.AsNoTracking().SingleOrDefaultAsync(
+                    x => x.TenantId == tenant.Id && x.Id == binding.UserId,
+                    cancellationToken);
+
+                if (bound is null || bound.Username != tenant.RootUsername)
+                    throw new InvalidOperationException(
+                        $"Tenant '{tenant.Id}': rootUsername does not match the persisted bootstrap root");
+
+                continue;
+            }
+
+            var existing = await db.Users.AsNoTracking().SingleOrDefaultAsync(
                 x => x.TenantId == tenant.Id && x.Username == tenant.RootUsername,
                 cancellationToken);
+            var bootstrapActors = await db.UserLogs.AsNoTracking().Where(
+                    x => x.TenantId == tenant.Id && x.Action == AuditAction.Bootstrap
+                        && x.Succeeded && x.ActorId != null)
+                .Select(x => x.ActorId).Distinct().Take(AmbiguousRootCount)
+                .ToArrayAsync(cancellationToken);
 
-            if (existing)
+            if (existing is not null)
+            {
+                if (bootstrapActors.Length != ExpectedRootCount
+                    || bootstrapActors[default(int)] != existing.Id)
+                    throw new InvalidOperationException(
+                        $"Tenant '{tenant.Id}': cannot verify rootUsername against bootstrap audit history");
+
+                BindRoot(tenant.Id, existing.Id);
                 continue;
+            }
+
+            if (bootstrapActors.Length != default(int)
+                || await db.Users.AnyAsync(x => x.TenantId == tenant.Id,
+                    cancellationToken))
+                throw new InvalidOperationException(
+                    $"Tenant '{tenant.Id}': configured rootUsername is missing from existing tenant data");
 
             var user = new UserEntity
             {
@@ -48,6 +87,7 @@ public sealed class Bootstrapper(
             };
 
             db.Users.Add(user);
+            BindRoot(tenant.Id, user.Id);
             db.Credentials.Add(new CredentialEntity
             {
                 TenantId = tenant.Id,
@@ -121,6 +161,25 @@ public sealed class Bootstrapper(
             throw new InvalidOperationException("Required user audit could not be saved");
 
         await transaction.CommitAsync(cancellationToken);
+    }
+
+    private void BindRoot(string tenantId, Guid userId)
+    {
+        db.TenantRoots.Add(new TenantRootEntity
+        {
+            TenantId = tenantId,
+            UserId = userId
+        });
+        userLogRepo.Add(new UserLogEntity
+        {
+            TenantId = tenantId,
+            Id = Guid.NewGuid(),
+            TargetUserId = userId,
+            Action = AuditAction.BootstrapRootBound,
+            Severity = UserLogSeverity.High,
+            Succeeded = true,
+            Timestamp = DateTimeOffset.UtcNow
+        });
     }
 
     private static bool SameFactors(CredentialType[] left, CredentialType[] right)

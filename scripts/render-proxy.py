@@ -22,15 +22,18 @@ for filename in ('nginx.conf', 'caddy.conf', 'traefik.yml'):
     if not prefix:
         if filename == 'nginx.conf':
             content = content.replace('location /_taurus/ {',
-                r'location ~ ^/(?:ui(?:/|$)|logout$|taurus\.v1\.Authentication/) {')
+                r'location ~ ^/(?:ui(?:/|$)|logout$|taurus\.v1\.'
+                r'(?:Authentication|Administration)/) {')
         elif filename == 'caddy.conf':
             content = content.replace('handle /_taurus/* {',
-                '@taurus path /ui /ui/* /logout /taurus.v1.Authentication/*\n'
+                '@taurus path /ui /ui/* /logout /taurus.v1.Authentication/* '
+                '/taurus.v1.Administration/*\n'
                 '        handle @taurus {')
         else:
             content = content.replace('PathPrefix(`/_taurus/`)',
                 '(Path(`/ui`) || Path(`/logout`) || PathPrefix(`/ui/`) || '
-                'PathPrefix(`/taurus.v1.Authentication/`))')
+                'PathPrefix(`/taurus.v1.Authentication/`) || '
+                'PathPrefix(`/taurus.v1.Administration/`))')
 
     content = content.replace('/_taurus', prefix)
     destination = arguments.output / filename

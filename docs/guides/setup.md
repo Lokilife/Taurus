@@ -50,10 +50,11 @@ only in the trusted local process and runs the library client/server enrollment.
 Normal browser login never sends the password to Taurus. Existing roots are not
 reset, enabled or re-enrolled on restart; run provisioning serially.
 
-This development change resets migration history to one generated `Initial` per
-provider. Earlier development databases are incompatible: recreate only known
-disposable databases or explicitly migrate your data offline. Startup rejects
-pending/mismatched migrations. No general operator database is erased for you.
+The earlier development migration reset established `Initial` for each provider.
+Databases using that baseline now receive additive migrations; pre-baseline
+databases remain incompatible. Recreate only known disposable databases or
+explicitly migrate older data offline. Startup rejects pending/mismatched
+migrations. No general operator database is erased for you.
 
 ## Direct serving and reverse proxies
 
@@ -92,7 +93,8 @@ snippets. Apache can proxy Taurus itself; its forward-auth adapter is pending.
 
 `http.requestPrefix` defaults to `/_taurus`; `""` disables it. The same compiled
 UI works at `<prefix>/ui/` without rebuilding. Keep its trailing slash. With no
-prefix, reserve `/auth`, `/logout`, `/ui/` and `/taurus.v1.Authentication/`. `/health/live` and
+prefix, reserve `/auth`, `/logout`, `/ui/`, `/taurus.v1.Authentication/` and
+`/taurus.v1.Administration/`. `/health/live` and
 `/health/ready` remain at the root. Configure exact tenant application origins
 and specific trusted proxy IPs. Different application hosts get separate sessions.
 
@@ -104,13 +106,33 @@ Only enabled authenticated tenant users are allowed today; resource permissions
 and cross-domain SSO are future features. Browser CSRF proofs use an authenticated
 seed and client salt, described in [security](../security/overview.md).
 
-### Reserved administration origin
+### Administration access foundation
 
 A tenant may set `adminOrigin: https://admin.example.com` to reserve a dedicated
 origin for the planned administration panel. It must differ from every configured
 application origin and other administration origins. HTTPS and trusted-proxy rules
 apply as usual. Omit this option when administration is not configured.
 
-This configuration foundation resolves the origin to its tenant and serves the
-existing login UI. User-management APIs, root authorization and the administration
-panel remain unfinished; setting this option does not deliver those features.
+The origin serves the existing login UI. The prefixed gRPC
+`taurus.v1.Administration/CheckAccess` method requires a valid session belonging to
+that tenant's persisted bootstrap root; application origins and ordinary accounts
+cannot use it. A successful response is empty. No user-management operations or
+administration panel are delivered yet.
+
+Apply the additive `BindBootstrapRoot` migration before starting this version.
+Bootstrap then binds the original root ID and records a High-severity audit event
+in the same transaction. For existing databases, the configured `rootUsername`
+must match the sole distinct successful bootstrap actor in retained user-audit
+history. Missing, conflicting or mismatched history stops startup without granting
+administrator access. Restore consistent configuration/history from a trusted
+backup before retrying; do not delete identity data to bypass the check.
+
+After binding, changing `rootUsername` does not transfer privileges or create a
+replacement root: a mismatch stops startup. Existing passwords and enabled/disabled
+status are preserved. Ordinary accounts can authenticate on the admin origin but
+are denied administration access. New administration writes will require CSRF and
+strict audit persistence; only the read-only access check is currently available.
+
+Use the standard prefixed Taurus proxy route on this host. Regenerate empty-prefix
+proxy snippets so they also route `/taurus.v1.Administration/`. Host-only cookies
+mean administrators sign in separately on the dedicated host.

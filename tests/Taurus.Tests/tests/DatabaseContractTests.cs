@@ -1,11 +1,19 @@
 using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Logging.Abstractions;
+using Taurus.Core.Administration;
 using Taurus.Core.Auditing;
 using Taurus.Core.Credentials;
 using Taurus.Core.Sessions;
 using Taurus.Core.Users;
+using Taurus.Infrastructure.Configuration;
+using Taurus.Infrastructure.Configuration.Secrets;
 using Taurus.Infrastructure.Configuration.Tenants;
+using Taurus.Infrastructure.Authentication.Keys;
+using Taurus.Infrastructure.Authentication.Opaque;
+using Taurus.Infrastructure.Provisioning;
 using Taurus.Infrastructure.Persistence;
 using Taurus.Infrastructure.Persistence.Auditing;
 using Taurus.Infrastructure.Persistence.Authentication;
@@ -23,6 +31,11 @@ public class DatabaseContractTests
     private const string Username = "root";
     private const string Digest = "test-digest";
     private const string Origin = "https://app.localhost";
+    private const string InitialMigration = "Initial";
+    private const string LegacyTenant = "legacy";
+    private const string LegacyPassword = "legacy-bootstrap-test-password";
+    private const string DefaultLocale = "en";
+    private const string DefaultTimezone = "UTC";
     private const string MissingAuditTableSql = "DROP TABLE \"UserLogs\"";
 
     [Fact]
@@ -51,7 +64,7 @@ public class DatabaseContractTests
         else
             await db.Database.OpenConnectionAsync();
 
-        await db.Database.MigrateAsync();
+        await VerifyLegacyMigrationAsync(db);
 
         Assert.False(db.Database.HasPendingModelChanges());
 
@@ -68,7 +81,7 @@ public class DatabaseContractTests
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
 
-        var stale = await db.Users.SingleAsync();
+        var stale = await db.Users.SingleAsync(x => x.TenantId == Tenant);
 
         await db.Users.ExecuteUpdateAsync(update =>
             update.SetProperty(x => x.Version, Guid.NewGuid()));
@@ -96,6 +109,23 @@ public class DatabaseContractTests
             Id = Guid.NewGuid(),
             UserId = user.Id
         });
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
+
+        db.ChangeTracker.Clear();
+        db.TenantRoots.Add(new TenantRootEntity
+        {
+            TenantId = OtherTenant,
+            UserId = user.Id
+        });
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
+
+        db.ChangeTracker.Clear();
+
+        var legacyRoot = await db.Users.SingleAsync(x => x.TenantId == LegacyTenant);
+
+        db.Users.Remove(legacyRoot);
 
         await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
 
@@ -131,5 +161,54 @@ public class DatabaseContractTests
 
         if (postgres)
             await db.Database.EnsureDeletedAsync();
+    }
+
+    private static async Task VerifyLegacyMigrationAsync(IdentityDatabase db)
+    {
+        var userId = Guid.NewGuid();
+        var version = Guid.NewGuid();
+        var auditId = Guid.NewGuid();
+        var timestamp = DateTimeOffset.UtcNow.UtcTicks;
+        var action = nameof(AuditAction.Bootstrap);
+
+        await db.GetService<IMigrator>().MigrateAsync(InitialMigration);
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "Users"
+                ("TenantId", "Id", "Username", "Status", "Locale", "Timezone", "Version")
+            VALUES ({LegacyTenant}, {userId}, {Username}, {(int)UserStatus.Enabled},
+                {DefaultLocale}, {DefaultTimezone}, {version})
+            """);
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "UserLogs"
+                ("TenantId", "Id", "ActorId", "Action", "Severity",
+                    "Succeeded", "Timestamp")
+            VALUES ({LegacyTenant}, {auditId}, {userId}, {action},
+                {(int)UserLogSeverity.High}, {true}, {timestamp})
+            """);
+        await db.Database.MigrateAsync();
+
+        var settings = new Settings
+        {
+            Tenants = [new Tenant
+            {
+                Id = LegacyTenant,
+                Issuer = Origin,
+                ApplicationOrigins = [Origin],
+                RootPassword = new SecretReference { Value = LegacyPassword }
+            }]
+        };
+        var opaque = new OpaqueService(new OpaqueOptions
+        {
+            Setup = new SecretReference { Value = KeyBootstrap.GenerateOpaqueSetup() }
+        }, TimeProvider.System);
+        var bootstrap = new Bootstrapper(db, settings, opaque,
+            new UserLogRepo(db, NullLogger<UserLogRepo>.Instance));
+
+        await bootstrap.RunAsync(default);
+
+        Assert.Equal(userId, (await db.TenantRoots.SingleAsync()).UserId);
+        Assert.Equal(version, (await db.Users.SingleAsync()).Version);
+        Assert.Null((await db.UserLogs.SingleAsync(x => x.Id == auditId)).TargetUserId);
+        db.ChangeTracker.Clear();
     }
 }

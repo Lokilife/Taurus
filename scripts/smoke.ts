@@ -13,6 +13,8 @@ const password = process.env.TAURUS_TEST_PASSWORD;
 const username = process.env.TAURUS_TEST_USERNAME ?? 'root';
 const prefix = process.env.TAURUS_TEST_PREFIX ?? '/_taurus';
 const service = '/taurus.v1.Authentication/';
+const administrationService = '/taurus.v1.Administration/';
+const adminAccess = process.env.TAURUS_TEST_ADMIN_ACCESS;
 const frameHeaderBytes = 5;
 const trailerBit = 128;
 const unknownField = new Uint8Array([120, 1]);
@@ -24,14 +26,15 @@ if (!origin || !password)
 async function rpc(
     method: string,
     payload = new Uint8Array(),
-    extra: Record<string, string> = {}
+    extra: Record<string, string> = {},
+    servicePath = service
 ): Promise<{ status: string; payload: Uint8Array }> {
     const frame = new Uint8Array(frameHeaderBytes + payload.length);
 
     new DataView(frame.buffer).setUint32(1, payload.length);
     frame.set(payload, frameHeaderBytes);
 
-    const response = await fetch(origin + prefix + service + method, {
+    const response = await fetch(origin + prefix + servicePath + method, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/grpc-web+proto',
@@ -114,6 +117,14 @@ assert.equal(canonical.status, 302, 'Missing trailing slash was not normalized')
 assert.equal(new URL(canonical.headers.get('location')!, origin).href,
     origin + prefix + '/ui/');
 
+if (adminAccess) {
+    assert.ok(adminAccess === 'allowed' || adminAccess === 'denied');
+    assert.equal((await rpc('CheckAccess', unknownField, {},
+        administrationService)).status, '3', 'Administration accepted unknown fields');
+    assert.equal((await rpc('CheckAccess', undefined, {},
+        administrationService)).status, adminAccess === 'allowed' ? '16' : '7');
+}
+
 await opaque.ready;
 
 async function login(): Promise<string> {
@@ -173,6 +184,13 @@ async function login(): Promise<string> {
 
 const seed = await login();
 
+if (adminAccess) {
+    const access = await rpc('CheckAccess', undefined, {}, administrationService);
+
+    assert.equal(access.status, adminAccess === 'allowed' ? '0' : '7');
+    assert.equal(access.payload.length, 0, 'Administration returned undocumented data');
+}
+
 if (process.env.TAURUS_TEST_STANDALONE === 'true') {
     const authorized = await fetch(origin + prefix + '/auth', {
         headers: { Cookie: [...cookies.values()].join('; ') }
@@ -212,6 +230,12 @@ for (const [name, value] of sessionCookies)
     cookies.set(name, value);
 
 assert.equal((await rpc('CurrentSession')).status, '16', 'Revoked token accepted');
+
+if (adminAccess) {
+    assert.equal((await rpc('CheckAccess', undefined, {},
+        administrationService)).status, adminAccess === 'allowed' ? '16' : '7');
+}
+
 console.log('OPAQUE, CSRF, wire rejection and session revocation checks passed');
 
 await login();

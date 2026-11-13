@@ -266,8 +266,11 @@ References: [setup](../guides/setup.md), [forward auth](../guides/forward-auth.m
 - [x] Optional dedicated `adminOrigin` configuration and tenant resolution;
   omitted origins disable the future administration entry point. Origins must
   be distinct from application origins and other tenants' administration origins.
-- [ ] Persist bootstrap-root identity and enforce root-only administration on
-  the dedicated origin; protect root against disabling.
+- [x] Persist tenant-scoped bootstrap-root identity with strict audit writes;
+  verify legacy root identity against successful bootstrap audit history.
+- [x] Root-only administration access check on the dedicated origin, using an
+  enabled, unexpired, unrevoked session. Reject unknown fields on the wire.
+- [ ] Protect root against disabling when management mutations are introduced.
 - [ ] Add paginated username/status search and basic user details.
 - [ ] Add version-checked enable/disable and revoke-all-session commands with
   atomic High-severity audit records identifying actor and target. Disabling

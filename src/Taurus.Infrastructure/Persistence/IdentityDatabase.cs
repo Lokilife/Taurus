@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Taurus.Core.Administration;
 using Taurus.Core.Auditing;
 using Taurus.Core.Authentication.Policies;
 using Taurus.Core.Credentials;
@@ -16,6 +17,7 @@ public class IdentityDatabase(DbContextOptions options)
     private const int IdentifierLength = 128;
     private const int DigestLength = 64;
 
+    public DbSet<TenantRootEntity> TenantRoots => Set<TenantRootEntity>();
     public DbSet<UserEntity> Users => Set<UserEntity>();
     public DbSet<CredentialEntity> Credentials => Set<CredentialEntity>();
     public DbSet<SessionEntity> Sessions => Set<SessionEntity>();
@@ -33,6 +35,10 @@ public class IdentityDatabase(DbContextOptions options)
         model.Entity<UserEntity>().HasIndex(x => new { x.TenantId, x.Username })
             .IsUnique();
         model.Entity<UserEntity>().Property(x => x.Version).IsConcurrencyToken();
+        model.Entity<TenantRootEntity>().HasKey(x => x.TenantId);
+        model.Entity<TenantRootEntity>().HasOne<UserEntity>().WithMany()
+            .HasForeignKey(x => new { x.TenantId, x.UserId })
+            .OnDelete(DeleteBehavior.Restrict);
         model.Entity<CredentialEntity>().HasKey(x => new { x.TenantId, x.Id });
         model.Entity<CredentialEntity>().HasIndex(x => new { x.TenantId, x.UserId });
         model.Entity<CredentialEntity>().HasOne<UserEntity>().WithMany()

@@ -5,12 +5,14 @@ using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using Taurus.Application.Behaviors;
+using Taurus.Application.Features.Administration.Authorize;
 using Taurus.Application.Features.Authentication.BeginLogin;
 using Taurus.Application.Features.Authentication.Login;
 using Taurus.Application.Features.Provisioning.Bootstrap;
 using Taurus.Application.Features.Schemas.ApplyCompatible;
 using Taurus.Application.Features.Schemas.Approve;
 using Taurus.Application.Features.Schemas.Plan;
+using Taurus.Core.Administration;
 using Taurus.Core.Auditing;
 using Taurus.Core.Authentication.Keys;
 using Taurus.Core.Authentication;
@@ -23,6 +25,7 @@ using Taurus.Infrastructure.Authentication.Opaque;
 using Taurus.Infrastructure.Configuration.Persistence;
 using Taurus.Infrastructure.Configuration;
 using Taurus.Infrastructure.Logging;
+using Taurus.Infrastructure.Persistence.Administration;
 using Taurus.Infrastructure.Persistence.Auditing;
 using Taurus.Infrastructure.Persistence.Authentication;
 using Taurus.Infrastructure.Persistence.Providers.PostgreSql;
@@ -33,6 +36,7 @@ using Taurus.Infrastructure.Schemas;
 using Taurus.Server.Auditing;
 using Taurus.Server.Configuration;
 using Taurus.Server.Security;
+using Taurus.Server.Transport.Grpc.Administration;
 using Taurus.Server.Transport.Grpc.Authentication;
 using Taurus.Server.Transport.Grpc.Interceptors;
 using Taurus.Server.Transport.Http;
@@ -113,6 +117,8 @@ public static class Program
                     .UseNpgsql(connection).Options),
             _ => throw new InvalidOperationException("Unsupported provider")
         });
+        builder.Services.AddScoped<IAdministrationRepo, AdministrationRepo>();
+        builder.Services.AddScoped<AdministrationAuthorization>();
         builder.Services.AddScoped<IUserLogRepo, UserLogRepo>();
         builder.Services.AddScoped<IAuthRepo, AuthRepo>();
         builder.Services.AddScoped<SchemaManager>();
@@ -123,6 +129,8 @@ public static class Program
             services.GetRequiredService<SchemaManager>());
         builder.Services.AddMediatR(configuration =>
             configuration.RegisterServicesFromAssemblyContaining<LoginCommand>());
+        builder.Services.AddTransient<IValidator<AuthorizeAdministrationQuery>,
+            AuthorizeAdministrationValidator>();
         builder.Services.AddTransient<IValidator<LoginCommand>, LoginValidator>();
         builder.Services.AddTransient<IValidator<BeginLoginCommand>,
             BeginLoginValidator>();
@@ -258,6 +266,8 @@ public static class Program
 
         app.MapGroup(settings.Http.RequestPrefix)
             .MapGrpcService<AuthenticationRpc>().EnableGrpcWeb();
+        app.MapGroup(settings.Http.RequestPrefix)
+            .MapGrpcService<AdministrationRpc>().EnableGrpcWeb();
         app.UseStaticFiles(new StaticFileOptions
         {
             RequestPath = settings.Http.RequestPrefix + "/ui"
