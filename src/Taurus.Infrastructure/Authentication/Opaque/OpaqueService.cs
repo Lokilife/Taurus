@@ -1,3 +1,4 @@
+using Taurus.Infrastructure.Configuration.Secrets;
 using System.Text.Json;
 using OPAQUE.Net;
 using Taurus.Core.Credentials.Opaque;
@@ -19,7 +20,7 @@ public sealed class OpaqueService : IOpaqueService
     {
         this.options = options;
         this.clock = clock;
-        setup = options.Setup.Resolve();
+        setup = options.Setup.Resolve(SecretReferencePaths.OpaqueSetup);
         pending = new Dictionary<string, PendingLogin>(options.MaximumPendingLogins);
     }
 

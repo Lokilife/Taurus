@@ -36,7 +36,7 @@ public sealed class HttpOptions
             if (string.IsNullOrWhiteSpace(CertificateFile))
                 throw new InvalidOperationException("Certificate password needs a file");
 
-            CertificatePassword.Validate();
+            CertificatePassword.Validate(SecretReferencePaths.CertificatePassword);
         }
     }
 

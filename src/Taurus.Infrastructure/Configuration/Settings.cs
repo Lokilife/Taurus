@@ -73,8 +73,8 @@ public sealed class Settings
             || !Enum.IsDefined(Sessions.AuditFailureMode))
             throw new InvalidOperationException("Invalid session settings");
 
-        Keys.Csrf.Validate();
-        Opaque.Setup.Validate();
+        SecretReference.Validate(Keys.Csrf, SecretReferencePaths.Csrf);
+        SecretReference.Validate(Opaque.Setup, SecretReferencePaths.OpaqueSetup);
 
         if (Opaque.MaximumPendingLogins <= default(int)
             || Opaque.ChallengeLifetime <= TimeSpan.Zero)
@@ -87,22 +87,25 @@ public sealed class Settings
             throw new InvalidOperationException("Invalid service logging settings");
 
         Http.Validate();
-        Database.Validate();
+        SecretReference.Validate(Database, SecretReferencePaths.Database);
         originTenants.Clear();
 
         var ids = new HashSet<string>(StringComparer.Ordinal);
         var origins = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var issuers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var tenant in Tenants)
+        for (var tenantIndex = default(int); tenantIndex < Tenants.Count; tenantIndex++)
         {
+            var tenant = Tenants[tenantIndex];
+
             if (string.IsNullOrWhiteSpace(tenant.Id)
                 || tenant.Id.Length > MaximumIdentifierLength || !ids.Add(tenant.Id)
                 || string.IsNullOrWhiteSpace(tenant.RootUsername)
                 || tenant.RootUsername.Length > LoginValidator.MaximumUsernameLength)
                 throw new InvalidOperationException("Invalid tenant identifiers");
 
-            tenant.RootPassword.Validate();
+            SecretReference.Validate(tenant.RootPassword,
+                SecretReferencePaths.RootPassword(tenantIndex));
             ValidateOrigin(tenant.Issuer);
 
             if (!issuers.Add(tenant.Issuer))
