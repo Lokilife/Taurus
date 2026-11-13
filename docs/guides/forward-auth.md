@@ -74,10 +74,48 @@ python3 scripts/render-proxy.py --prefix /identity --output /tmp/taurus-proxy
 python3 scripts/render-proxy.py --prefix '' --output /tmp/taurus-no-prefix
 ```
 
-Include/load those generated files instead. With no prefix, reserve `/auth`,
+Include/load those generated files instead. With no prefix, reserve `/auth`, `/logout`,
 `/ui/`, and `/taurus.v1.Authentication/` for Taurus. Keep the trailing `/` on
 login page URLs. The hash router and relative assets allow the same compiled UI
 to run at each prefix.
+
+## Log out from an application
+
+Link to Taurus on the **same application origin**:
+
+```html
+<a href="/_taurus/logout">Sign out</a>
+```
+
+A user can also type that URL into the browser's address bar. Visiting it revokes
+that browser's current session in the database, clears its session cookie, and
+redirects to the Taurus login page. Application code does not need to obtain a
+CSRF token or manage Taurus cookies for this navigation.
+
+The route is `<requestPrefix>/logout`: use `/identity/logout` for prefix
+`/identity`, or `/logout` when the prefix is disabled. Ready proxy includes
+already forward the prefixed route to Taurus without applying application auth.
+For a disabled prefix, regenerate the includes with `render-proxy.py`. Custom
+proxy setups must likewise route the logout endpoint to Taurus before application
+authentication and preserve the browser's Cookie and `Sec-Fetch-*` headers.
+Admins can expose another public path through an explicit proxy mapping.
+
+This signs out the visitor's session for that application origin. It does not
+revoke other browsers, other application origins or another user's sessions.
+Clear application-owned login state separately if the application maintains any.
+No return URL is accepted; the destination is always Taurus's configured login
+page. Repeated visits without a valid session still go to that page. Storage or
+required audit failures return 503 rather than claiming that logout succeeded.
+
+The GET endpoint requires user-activated, top-level navigation, identified by
+Fetch Metadata headers: `Sec-Fetch-Mode: navigate`, `Sec-Fetch-Dest: document`,
+`Sec-Fetch-User: ?1`, and `Sec-Fetch-Site: same-origin` or `none`. This prevents
+cross-origin pages, images, frames, prefetches and background fetches from forcing
+a logout. Missing or disallowed metadata returns 403; HEAD cannot revoke a session.
+Use a normal same-origin link; background fetches and non-user-activated
+redirects do not qualify. Clients
+without these browser headers can use the existing gRPC Logout operation with
+its CSRF proof. See the [Fetch Metadata specification](https://www.w3.org/TR/fetch-metadata/).
 
 ## What Taurus needs
 

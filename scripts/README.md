@@ -12,7 +12,8 @@ Python scripts use only the standard library; `requirements.txt` has no packages
   renders proxy snippets for another prefix. Use `--prefix ''` to disable it.
   Existing destinations are never overwritten.
 - `node scripts/smoke.ts`: checks the actual login page/assets, JavaScript/.NET
-  OPAQUE interoperability, CSRF, wire unknown-field rejection and revocation.
+  OPAQUE interoperability, CSRF, wire unknown-field rejection, revocation and
+  user-navigation logout.
   Requires Node 24 and a running Taurus. Set `TAURUS_TEST_ORIGIN` and
   `TAURUS_TEST_PASSWORD`; optional `TAURUS_TEST_USERNAME` defaults to root and
   `TAURUS_TEST_PREFIX` to /_taurus (it may be empty). Use trusted TLS or explicit
