@@ -31,7 +31,9 @@ so production does not require a separate Node service.
 ## Domain model and capability interfaces
 
 Core contains identity state: users, credentials, groups, memberships, attributes,
-sessions, authentication policies and user-audit events. These types represent
+sessions, authentication policies and user-audit events. The persisted
+`UserEntity.Root` marker identifies the bootstrap administrator; changing a
+configured username never grants another account root authority. These types represent
 separate concerns; a user is not also a credential or a transport response.
 
 Tenant-owned identity operations require explicit tenant scope. Persistence keys

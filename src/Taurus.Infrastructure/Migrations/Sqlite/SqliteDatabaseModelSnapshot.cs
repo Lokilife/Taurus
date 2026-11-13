@@ -238,6 +238,9 @@ namespace Taurus.Infrastructure.Migrations.Sqlite
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("Root")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
@@ -254,6 +257,10 @@ namespace Taurus.Infrastructure.Migrations.Sqlite
                         .HasColumnType("TEXT");
 
                     b.HasKey("TenantId", "Id");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasFilter("\"Root\" = true");
 
                     b.HasIndex("TenantId", "Username")
                         .IsUnique();

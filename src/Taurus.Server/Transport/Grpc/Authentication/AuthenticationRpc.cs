@@ -1,4 +1,5 @@
 using FluentValidation;
+using Taurus.Application.Features.Users.CurrentUser;
 using Grpc.Core;
 using MediatR;
 using Taurus.Application.Features.Authentication;
@@ -133,6 +134,44 @@ public sealed class AuthenticationRpc(
                 "Authentication required"));
 
         return Response(tenant.Id, http, identity);
+    }
+
+    /// <summary>Returns the current public user profile.</summary>
+    public override async Task<UserMessage> GetCurrentUser(
+        EmptyRequest request,
+        ServerCallContext context)
+    {
+        var http = context.GetHttpContext();
+        var tenant = Resolve(http);
+        var profile = await sender.Send(new CurrentUserQuery(tenant.Id,
+            BrowserSecurity.Origin(http), BrowserSecurity.ReadSession(http)),
+            context.CancellationToken);
+
+        if (profile is null)
+            throw new RpcException(new Status(StatusCode.Unauthenticated,
+                "Authentication required"));
+
+        var response = new UserMessage
+        {
+            UserId = profile.User.Id.ToString(),
+            Username = profile.User.Username,
+            Locale = profile.User.Locale,
+            Timezone = profile.User.Timezone
+        };
+
+        if (profile.CanManageUsers)
+            response.Permissions.Add(UserPermission.ManageUsers);
+
+        foreach (var group in profile.User.Groups)
+        {
+            response.Groups.Add(new UserGroupMessage
+            {
+                GroupId = group.Id.ToString(),
+                Name = group.Name
+            });
+        }
+
+        return response;
     }
 
     public override async Task<EmptyResponse> Logout(

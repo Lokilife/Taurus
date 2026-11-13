@@ -1,6 +1,7 @@
 syntax = "proto3";
 package taurus.v1;
 option csharp_namespace = "Taurus.Shared";
+import "user.proto";
 
 // Same-origin browser authentication. Unknown request fields are rejected.
 // Failures use generic INVALID_ARGUMENT, PERMISSION_DENIED, UNAUTHENTICATED,
@@ -14,6 +15,10 @@ service Authentication {
   rpc Login (LoginRequest) returns (SessionResponse);
   // Returns identity and CSRF seed; never returns the session cookie token.
   rpc CurrentSession (EmptyRequest) returns (SessionResponse);
+  // Returns the authenticated user's profile on any configured tenant origin.
+  // Uses the current HttpOnly session cookie; unknown request fields are rejected.
+  // Returns UNAUTHENTICATED for absent, expired, revoked or disabled-user sessions.
+  rpc GetCurrentUser (EmptyRequest) returns (UserMessage);
   // Revokes the current session. Requires the session CSRF proof and salt.
   rpc Logout (EmptyRequest) returns (EmptyResponse);
 }

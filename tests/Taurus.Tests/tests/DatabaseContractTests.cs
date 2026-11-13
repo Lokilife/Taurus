@@ -21,6 +21,7 @@ public class DatabaseContractTests
     private const string Tenant = "contract";
     private const string OtherTenant = "other";
     private const string Username = "root";
+    private const string OtherUsername = "another-root";
     private const string Digest = "test-digest";
     private const string Origin = "https://app.localhost";
     private const string MissingAuditTableSql = "DROP TABLE \"UserLogs\"";
@@ -61,6 +62,7 @@ public class DatabaseContractTests
             Id = Guid.NewGuid(),
             Username = Username,
             Status = UserStatus.Enabled,
+            Root = true,
             Version = Guid.NewGuid()
         };
 
@@ -85,6 +87,17 @@ public class DatabaseContractTests
             Id = Guid.NewGuid(),
             Username = Username,
             Status = UserStatus.Enabled
+        });
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
+
+        db.ChangeTracker.Clear();
+        db.Users.Add(new UserEntity
+        {
+            TenantId = Tenant,
+            Id = Guid.NewGuid(),
+            Username = OtherUsername,
+            Root = true
         });
 
         await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());

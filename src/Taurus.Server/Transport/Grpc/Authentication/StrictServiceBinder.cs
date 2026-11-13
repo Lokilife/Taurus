@@ -21,6 +21,9 @@ public static class StrictServiceBinder
         binder.AddMethod(Method<EmptyRequest, SessionResponse>(
             nameof(AuthenticationRpc.CurrentSession)),
             service is null ? null : service.CurrentSession);
+        binder.AddMethod(Method<EmptyRequest, UserMessage>(
+            nameof(AuthenticationRpc.GetCurrentUser)),
+            service is null ? null : service.GetCurrentUser);
         binder.AddMethod(Method<EmptyRequest, EmptyResponse>(
             nameof(AuthenticationRpc.Logout)),
             service is null ? null : service.Logout);

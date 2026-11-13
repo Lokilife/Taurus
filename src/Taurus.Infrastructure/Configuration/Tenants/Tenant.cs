@@ -9,6 +9,8 @@ public sealed class Tenant
     public string Id { get; set; } = string.Empty;
     public string Issuer { get; set; } = string.Empty;
     public List<string> ApplicationOrigins { get; set; } = [];
+    /// <summary>Dedicated administration origin; null disables administration.</summary>
+    public string? AdminOrigin { get; set; }
     public string RootUsername { get; set; } = "root";
     public SecretReference RootPassword { get; set; } = new()
     {

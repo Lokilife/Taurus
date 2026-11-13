@@ -243,6 +243,9 @@ namespace Taurus.Infrastructure.Migrations.PostgreSql
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("Root")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -259,6 +262,10 @@ namespace Taurus.Infrastructure.Migrations.PostgreSql
                         .HasColumnType("uuid");
 
                     b.HasKey("TenantId", "Id");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasFilter("\"Root\" = true");
 
                     b.HasIndex("TenantId", "Username")
                         .IsUnique();

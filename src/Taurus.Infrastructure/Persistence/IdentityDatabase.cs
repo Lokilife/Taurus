@@ -15,6 +15,7 @@ public class IdentityDatabase(DbContextOptions options)
 {
     private const int IdentifierLength = 128;
     private const int DigestLength = 64;
+    private const string RootFilter = "\"Root\" = true";
 
     public DbSet<UserEntity> Users => Set<UserEntity>();
     public DbSet<CredentialEntity> Credentials => Set<CredentialEntity>();
@@ -33,6 +34,8 @@ public class IdentityDatabase(DbContextOptions options)
         model.Entity<UserEntity>().HasIndex(x => new { x.TenantId, x.Username })
             .IsUnique();
         model.Entity<UserEntity>().Property(x => x.Version).IsConcurrencyToken();
+        model.Entity<UserEntity>().HasIndex(x => x.TenantId).IsUnique()
+            .HasFilter(RootFilter);
         model.Entity<CredentialEntity>().HasKey(x => new { x.TenantId, x.Id });
         model.Entity<CredentialEntity>().HasIndex(x => new { x.TenantId, x.UserId });
         model.Entity<CredentialEntity>().HasOne<UserEntity>().WithMany()

@@ -17,6 +17,10 @@ Python scripts use only the standard library; `requirements.txt` has no packages
   Set `TAURUS_TEST_STANDALONE=true` for direct Taurus to also check the login
   redirect and forward-auth status codes/identity headers (proxies may keep the
   authorization endpoint internal).
+  Also checks current-user profile serialization, strict wire parsing and
+  rejection after session revocation. Set `TAURUS_TEST_EXPECT_ADMIN=true` for
+  root on the admin origin, or `false` on an application origin or for an ordinary
+  user, to additionally assert the effective permissions.
   Requires Node 24 and a running Taurus. Set `TAURUS_TEST_ORIGIN` and
   `TAURUS_TEST_PASSWORD`; optional `TAURUS_TEST_USERNAME` defaults to root and
   `TAURUS_TEST_PREFIX` to /_taurus (it may be empty). Use trusted TLS or explicit

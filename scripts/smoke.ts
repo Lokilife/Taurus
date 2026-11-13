@@ -8,11 +8,14 @@ const require = createRequire(import.meta.url);
 const opaque = require('../src/Taurus.WebClient/node_modules/@serenity-kit/opaque');
 const contractPath = '../src/Taurus.WebClient/src/lib/generated/authentication_pb.js';
 const contracts = require(contractPath);
+const profiles = require(
+    '../src/Taurus.WebClient/src/lib/generated/user_pb.js');
 const origin = process.env.TAURUS_TEST_ORIGIN;
 const password = process.env.TAURUS_TEST_PASSWORD;
 const username = process.env.TAURUS_TEST_USERNAME ?? 'root';
 const prefix = process.env.TAURUS_TEST_PREFIX ?? '/_taurus';
 const service = '/taurus.v1.Authentication/';
+const expectedAdmin = process.env.TAURUS_TEST_EXPECT_ADMIN;
 const frameHeaderBytes = 5;
 const trailerBit = 128;
 const unknownField = new Uint8Array([120, 1]);
@@ -114,6 +117,10 @@ assert.equal(canonical.status, 302, 'Missing trailing slash was not normalized')
 assert.equal(new URL(canonical.headers.get('location')!, origin).href,
     origin + prefix + '/ui/');
 
+assert.equal((await rpc('GetCurrentUser', unknownField)).status, '3',
+    'Current-user endpoint accepted unknown fields');
+assert.equal((await rpc('GetCurrentUser')).status, '16');
+
 await opaque.ready;
 
 async function login(): Promise<string> {
@@ -173,6 +180,24 @@ async function login(): Promise<string> {
 
 const seed = await login();
 
+const profileResponse = await rpc('GetCurrentUser');
+
+assert.equal(profileResponse.status, '0');
+
+const profile = profiles.UserMessage.deserializeBinary(profileResponse.payload);
+
+assert.deepEqual(profile.serializeBinary(), profileResponse.payload,
+    'Current-user response contains undocumented fields');
+assert.equal(profile.getUsername(), username);
+assert.ok(profile.getUserId(), 'Current-user profile lacks an ID');
+assert.equal(profile.hasAvatarUrl(), false, 'Unimplemented avatar was returned');
+
+if (expectedAdmin !== undefined) {
+    assert.ok(expectedAdmin === 'true' || expectedAdmin === 'false');
+    assert.deepEqual(profile.getPermissionsList(), expectedAdmin === 'true'
+        ? [profiles.UserPermission.USER_PERMISSION_MANAGE_USERS] : []);
+}
+
 if (process.env.TAURUS_TEST_STANDALONE === 'true') {
     const authorized = await fetch(origin + prefix + '/auth', {
         headers: { Cookie: [...cookies.values()].join('; ') }
@@ -212,6 +237,10 @@ for (const [name, value] of sessionCookies)
     cookies.set(name, value);
 
 assert.equal((await rpc('CurrentSession')).status, '16', 'Revoked token accepted');
+
+assert.equal((await rpc('GetCurrentUser')).status, '16',
+    'Current-user profile accepted a revoked session');
+
 console.log('OPAQUE, CSRF, wire rejection and session revocation checks passed');
 
 await login();

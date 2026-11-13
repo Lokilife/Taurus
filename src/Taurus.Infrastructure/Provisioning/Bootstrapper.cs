@@ -31,12 +31,22 @@ public sealed class Bootstrapper(
             if (password.Length > LoginValidator.MaximumPasswordLength)
                 throw new InvalidOperationException("Bootstrap password is too long");
 
-            var existing = await db.Users.AnyAsync(
-                x => x.TenantId == tenant.Id && x.Username == tenant.RootUsername,
-                cancellationToken);
+            var root = await db.Users.AsNoTracking().SingleOrDefaultAsync(
+                x => x.TenantId == tenant.Id && x.Root, cancellationToken);
 
-            if (existing)
+            if (root is not null)
+            {
+                if (root.Username != tenant.RootUsername)
+                    throw new InvalidOperationException(
+                        $"Tenant '{tenant.Id}': rootUsername does not match the persisted root");
+
                 continue;
+            }
+
+            if (await db.Users.AnyAsync(x => x.TenantId == tenant.Id,
+                cancellationToken))
+                throw new InvalidOperationException(
+                    $"Tenant '{tenant.Id}': users exist without a root marker; pre-1.0 compatibility is not supported");
 
             var user = new UserEntity
             {
@@ -44,6 +54,7 @@ public sealed class Bootstrapper(
                 Id = Guid.NewGuid(),
                 Username = tenant.RootUsername,
                 Status = UserStatus.Enabled,
+                Root = true,
                 Version = Guid.NewGuid()
             };
 
