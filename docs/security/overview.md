@@ -75,7 +75,7 @@ forwarded metadata and identity headers, remove Taurus credentials before the
 protected backend, and deny access on auth/storage failure. Trust only explicit
 proxy IPs. Each configured application host has an independent session. Mutually
 untrusted apps need distinct hosts: same-origin XSS can act as the user despite
-HttpOnly cookies. See [forward authentication](guides/forward-auth.md).
+HttpOnly cookies. See [forward authentication](../guides/forward-auth.md).
 
 Strict service bindings reject unknown protobuf fields recursively before
 handlers. Parser tests and the actual wire smoke path cover rejection. Responses

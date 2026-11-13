@@ -25,7 +25,7 @@ versions, the wrapper or Taurus. Security review remains a release gate.
 
 The native wrapper requires in-process exportable setup material today. Future
 HSM support cannot be claimed solely because Taurus defines interfaces. See
-[security](security.md) for compromise and browser-delivery limits.
+[security](../security/overview.md) for compromise and browser-delivery limits.
 
 ## Web build
 

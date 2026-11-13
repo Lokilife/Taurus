@@ -1,7 +1,7 @@
 # Taurus development rules
 
-Follow [the code style guidelines](docs/code-style.md) for all added or changed
-code. Discuss exceptions before introducing them.
+Follow [the code style guidelines](docs/development/code-style.md) for all added
+or changed code. Discuss exceptions before introducing them.
 
 Use type-named files and feature folders. Group small related types only when
 the complete file stays within 30 lines. Apply this rule to every new type;
@@ -11,13 +11,13 @@ leave project utilities and global usings at the root. Auto-generated
 files are exempt from all rules and must remain generator-owned. Name database
 access abstractions and implementations with `Repo`, such as `IAuthRepo`.
 
-Follow [the performance guidelines](docs/performance.md) and
-[the CQRS feature design](docs/architecture.md). Use MediatR and FluentValidation
-for application features; FluentResults is also permitted.
+Follow [the performance guidelines](docs/development/performance.md) and
+[the CQRS feature design](docs/development/architecture.md). Use MediatR and
+FluentValidation for application features; FluentResults is also permitted.
 
 Discuss new external dependencies with the user before adopting them. Never
 implement cryptographic algorithms. Record dependency decisions in
-[the dependency notes](docs/dependencies.md).
+[the dependency notes](docs/decisions/dependencies.md).
 
 Keep domain types free of HTTP, protobuf, and EF Core dependencies. Put use cases
 in Application and adapters in Infrastructure. Require tenant scope for identity
@@ -36,7 +36,8 @@ equivalent delivery mechanism.
 Build the static web client before building or publishing Server. Do not run
 those builds concurrently. Run `python3 scripts/check-style.py` and relevant
 checks before reporting completion. PostgreSQL contract tests require a disposable
-database; they delete and recreate it. See README for integration checks.
+database; they delete and recreate it. See
+[the development guide](docs/guides/development.md) for integration checks.
 
 Do not claim unfinished milestone functionality is delivered. Keep the project
 pre-1.0 until the user explicitly decides to make a stable release.

@@ -76,5 +76,5 @@ security/audit writes. They do not establish cryptographic tamper evidence.
 - No benchmark validates the future combined OIDC-refresh/OPAQUE-login target.
   Historical Argon2 measurements do not describe this implementation.
 
-Reproduction commands and prerequisites are in [setup](../README.md),
-[scripts](../scripts/README.md), and [forward auth](guides/forward-auth.md).
+Reproduction commands and prerequisites are in [setup](../guides/setup.md),
+[scripts](../../scripts/README.md), and [forward auth](../guides/forward-auth.md).

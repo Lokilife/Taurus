@@ -256,7 +256,7 @@ Release sequencing for these features remains a project decision.
   plus 500 OPAQUE logins per second on one instance with 4 vCPU/8 GB RAM;
   database/load generators are outside that allocation. Not a current claim.
 
-References: [setup](../README.md), [forward auth](guides/forward-auth.md),
-[security](security.md), [auditing](auditing.md), [dependencies](dependencies.md),
+References: [setup](../guides/setup.md), [forward auth](../guides/forward-auth.md),
+[security](../security/overview.md), [auditing](../security/auditing.md), [dependencies](../decisions/dependencies.md),
 [performance](performance.md), [architecture](architecture.md),
 [code style](code-style.md).

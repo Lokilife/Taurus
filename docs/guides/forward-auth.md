@@ -83,7 +83,7 @@ to run at each prefix.
 
 A reverse proxy is recommended for public TLS and traffic controls, but Taurus
 can serve HTTPS directly with a configured certificate. Local testing can enable
-HTTP only for literal loopback origins; see [setup](../../README.md).
+HTTP only for literal loopback origins; see [setup](setup.md).
 
 Each protected public origin must appear in exactly one tenant's
 `applicationOrigins`. Sessions belong to that tenant and exact origin. Users

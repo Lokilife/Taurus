@@ -170,3 +170,22 @@ names merely to avoid strings.
 Use TypeScript for handwritten application code, configuration and browser tools.
 Place styles in separate CSS files adjacent to their components. Generated
 JavaScript remains generator-owned and is not tracked in the repository.
+
+## Commit messages
+
+Commit messages must follow
+[Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/).
+Follow the specification closely; do not introduce deviations without a concrete
+need and an explicit documented agreement.
+
+Use `<type>[optional scope][optional !]: <description>` for the subject, with
+an accurate, concise description. Use `feat` for new features, `fix` for bug
+fixes, and `docs` for documentation-only changes. Other meaningful types are
+permitted by the specification. A scope is optional; include it when useful.
+
+Mark breaking changes with `!` before the colon or a `BREAKING CHANGE:` footer.
+Bodies and footers are optional; when present, follow the specification's
+blank-line and footer syntax. Do not require extra sections or scopes merely
+for formality.
+
+Example: `docs: reorganize documentation and clarify architecture`.
